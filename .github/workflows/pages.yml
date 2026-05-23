@@ -25,6 +25,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: INPUT=test-ui.html npx vite build --outDir pages
+      - run: mv pages/test-ui.html pages/index.html
       - run: cp screenshot.png pages/
       - uses: actions/upload-pages-artifact@v3
         with:
