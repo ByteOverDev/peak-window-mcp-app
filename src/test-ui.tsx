@@ -12,13 +12,10 @@ import type { CursorState, PeakWindowResult } from "./types.ts";
 import { computeSunMarkers } from "./sun.ts";
 import { TopBar } from "./components/TopBar.tsx";
 import { HeroWindow } from "./components/HeroWindow.tsx";
-import { PeakCard, type PeakForm } from "./components/PeakCard.tsx";
-import { HorizonTape } from "./components/HorizonTape.tsx";
 import { MountainProfile } from "./components/MountainProfile.tsx";
 import { ChartPanels, type VentuskyPayload } from "./ventusky.tsx";
 import { StatsRow } from "./components/StatsRow.tsx";
 import { WeekOverview } from "./components/WeekOverview.tsx";
-import { WindowsList } from "./components/WindowsList.tsx";
 import { FloatingTooltip } from "./components/FloatingTooltip.tsx";
 import { scoreHour, findWindows, type HourData } from "./scoring.ts";
 
@@ -141,12 +138,6 @@ function TestApp() {
   const [showFeelsLike, setShowFeelsLike] = useState(true);
   const [cursor, setCursor] = useState<CursorState | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [form, setForm] = useState<PeakForm>({
-    peakName: data.peakName ?? "Großglockner",
-    lat: data.lat.toString(),
-    lon: data.lon.toString(),
-    summitElevationM: data.summitElevationM?.toString() ?? "",
-  });
 
   const sunMarkers = useMemo(() => computeSunMarkers(data.series.time, data.lat, data.lon), [data]);
 
@@ -179,38 +170,23 @@ function TestApp() {
     <div className={styles.embed}>
       <TopBar data={data} windowCount={windows.length} />
 
-      <div className={styles.hero}>
-        <HeroWindow
-          window={selectedWindow}
-          hours={data.hours}
-          sunMarkers={sunMarkers}
-          totalHours={data.series.time.length}
-          selectedIdx={selectedIdx}
-          totalWindows={windows.length}
-          summitElevation={data.summitElevationM}
-          onPrev={() => setSelectedIdx(Math.max(0, selectedIdx - 1))}
-          onNext={() => setSelectedIdx(Math.min(windows.length - 1, selectedIdx + 1))}
-        />
-        <PeakCard form={form} setForm={setForm} data={data} onAnalyze={() => {}} loading={false} />
-      </div>
+      <HeroWindow
+        window={selectedWindow}
+        hours={data.hours}
+        sunMarkers={sunMarkers}
+        totalHours={data.series.time.length}
+        selectedIdx={selectedIdx}
+        totalWindows={windows.length}
+        summitElevation={data.summitElevationM}
+        onPrev={() => setSelectedIdx(Math.max(0, selectedIdx - 1))}
+        onNext={() => setSelectedIdx(Math.min(windows.length - 1, selectedIdx + 1))}
+      />
 
       <WeekOverview
         hours={data.hours}
         windows={windows}
         selectedIdx={selectedIdx}
         onSelect={setSelectedIdx}
-      />
-
-      <WindowsList
-        windows={windows}
-        selectedIdx={selectedIdx}
-        onSelect={setSelectedIdx}
-      />
-
-      <HorizonTape
-        hours={data.hours}
-        times={data.series.time}
-        sunMarkers={sunMarkers}
         cursorIdx={cursor?.idx ?? null}
         onHover={handleTapeHover}
       />

@@ -8,7 +8,7 @@ const fmtHM = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "
 
 interface DayGroup {
   date: Date;
-  hours: ScoredHour[];
+  hours: Array<{ hour: ScoredHour; flatIdx: number }>;
 }
 
 interface WeekOverviewProps {
@@ -16,21 +16,37 @@ interface WeekOverviewProps {
   windows: ClimbWindow[];
   selectedIdx: number;
   onSelect: (idx: number) => void;
+  cursorIdx: number | null;
+  onHover: (idx: number | null, x?: number, y?: number) => void;
 }
 
-export function WeekOverview({ hours, windows, selectedIdx, onSelect }: WeekOverviewProps) {
+export function WeekOverview({ hours, windows, selectedIdx, onSelect, cursorIdx, onHover }: WeekOverviewProps) {
   const days = useMemo(() => {
     const map = new Map<string, DayGroup>();
-    hours.forEach((h) => {
+    hours.forEach((h, i) => {
       const d = new Date(h.time);
       const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
       if (!map.has(key)) {
         map.set(key, { date: new Date(d.getFullYear(), d.getMonth(), d.getDate()), hours: [] });
       }
-      map.get(key)!.hours.push(h);
+      map.get(key)!.hours.push({ hour: h, flatIdx: i });
     });
     return Array.from(map.values());
   }, [hours]);
+
+  const windowHourSet = useMemo(() => {
+    const set = new Set<number>();
+    hours.forEach((h, i) => {
+      const t = new Date(h.time).getTime();
+      for (const w of windows) {
+        if (t >= new Date(w.start).getTime() && t < new Date(w.end).getTime()) {
+          set.add(i);
+          break;
+        }
+      }
+    });
+    return set;
+  }, [hours, windows]);
 
   const dayBest: Array<{ day: DayGroup; best: ClimbWindow | null; bestIdx: number; tMax: number; tMin: number; wMax: number }> = days.map((day) => {
     const dStart = day.date.getTime();
@@ -47,19 +63,28 @@ export function WeekOverview({ hours, windows, selectedIdx, onSelect }: WeekOver
         }
       }
     });
-    const tMax = Math.max(...day.hours.map(h => h.t2m ?? 0));
-    const tMin = Math.min(...day.hours.map(h => h.t2m ?? 0));
-    const wMax = Math.max(...day.hours.map(h => h.gust ?? h.wsp ?? 0));
+    const tMax = Math.max(...day.hours.map(({ hour: h }) => h.t2m ?? 0));
+    const tMin = Math.min(...day.hours.map(({ hour: h }) => h.t2m ?? 0));
+    const wMax = Math.max(...day.hours.map(({ hour: h }) => h.gust ?? h.wsp ?? 0));
     return { day, best, bestIdx, tMax, tMin, wMax };
   });
 
   return (
     <div className={s.wrap}>
-      <div className={s.head}>
-        <span className={s.eyebrow}>7-day overview</span>
-        <span className={s.sub}>Best window per day &middot; tap to load details</span>
-      </div>
       <div className={s.rows}>
+        <div className={s.head}>
+          <div className={s.headLeft}>
+            <h3 className={s.title}>7-day overview</h3>
+            <span className={s.meta}>best window per day</span>
+            <span className={s.meta}>hover bars to scrub</span>
+          </div>
+          <div className={s.legend}>
+            <span><span className={s.dot} style={{ background: "var(--score-ideal)" }} />ideal</span>
+            <span><span className={s.dot} style={{ background: "var(--score-good)" }} />good</span>
+            <span><span className={s.dot} style={{ background: "var(--score-marginal)" }} />marginal</span>
+            <span><span className={s.dot} style={{ background: "var(--score-avoid)" }} />avoid</span>
+          </div>
+        </div>
         {dayBest.map(({ day, best, bestIdx, tMin, tMax, wMax }, i) => {
           const isToday = i === 0;
           const isSel = bestIdx >= 0 && bestIdx === selectedIdx;
@@ -77,15 +102,17 @@ export function WeekOverview({ hours, windows, selectedIdx, onSelect }: WeekOver
                 <div className={s.md}>{md}</div>
               </div>
 
-              <div className={s.bars}>
-                {day.hours.map((h, hi) => (
+              <div className={s.bars} onMouseLeave={() => onHover(null)}>
+                {day.hours.map(({ hour: h, flatIdx }) => (
                   <div
-                    key={hi}
-                    className={s.bar}
+                    key={flatIdx}
+                    className={`${s.bar} ${windowHourSet.has(flatIdx) ? s.inWindow : ""}`}
                     style={{
                       height: `${Math.max(10, h.score)}%`,
                       background: ratingColor(h.rating),
+                      opacity: cursorIdx == null ? 0.85 : (flatIdx === cursorIdx ? 1 : 0.45),
                     }}
+                    onMouseEnter={(e) => onHover(flatIdx, e.clientX, e.clientY)}
                     title={`${new Date(h.time).getHours()}:00 - ${h.score}/100`}
                   />
                 ))}

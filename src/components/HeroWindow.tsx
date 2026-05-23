@@ -270,13 +270,6 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
         <span className={s.pulse}>
           {selectedIdx === 0 ? "Top climb window" : `Climb window ${selectedIdx + 1} of ${totalWindows}`}
         </span>
-        <div className={s.nav}>
-          <button className={s.navBtn} onClick={onPrev} disabled={selectedIdx === 0} aria-label="Previous window">&#8249;</button>
-          <span className={s.eyeMeta}>
-            {w.hours}h &middot; {sameDay ? `${wd(a)} ${fmtDay(a)}` : `${fmtDay(a)} – ${fmtDay(b)}`}
-          </span>
-          <button className={s.navBtn} onClick={onNext} disabled={selectedIdx >= totalWindows - 1} aria-label="Next window">&#8250;</button>
-        </div>
       </div>
       <div>
         <div className={s.heroTime}>
@@ -285,7 +278,7 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
             : <>{wd(a)} {fmtHM(a)}<span className={s.arrow}> &#8594; </span>{wd(b)} {fmtHM(b)}</>
           }
         </div>
-        <div className={s.heroSub} style={{ marginTop: 8 }}>
+        <div className={s.heroSub}>
           <span className={s.heroSlot}>{fmtWindowTitle(w)}</span>
           {" — "}
           {w.summary.replace(/^\d+h window — /, "")}.
@@ -296,9 +289,8 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
 
       <AlertChips slice={slice} cAvg={cAvg} slMin={slMin} slMax={slMax} summit={summit} />
 
-      <div className={s.heroRow}>
+      <div className={s.heroBottom}>
         <div className={s.heroStats}>
-          {/* Temp */}
           <div className={s.stat}>
             <div className={s.statLabel}><Thermometer size={11} /> Temp</div>
             <div className={s.statValue} style={{ color: "var(--c-temp)" }}>
@@ -306,20 +298,6 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
               {" "}<TrendIcon trend={tempTrend} />
             </div>
           </div>
-          {/* Wind */}
-          <div className={s.stat}>
-            <div className={s.statLabel}><Wind size={11} /> Wind</div>
-            <div className={s.statValue} style={{ color: "var(--c-wind)" }}>
-              &le;{wMax.toFixed(1)}<span className={s.statUnit}> m/s</span>
-              {" "}<TrendIcon trend={windTrend} />
-            </div>
-            {ddVals.length > 0 && (
-              <div className={s.hsAux}>
-                <WindGlyph deg={domDir} /> from {cardinal} &middot; {Math.round(domDir)}&deg;
-              </div>
-            )}
-          </div>
-          {/* Feels-like (replaces Cloud) */}
           <div className={s.stat}>
             <div className={s.statLabel}>
               <Thermometer size={11} /> Feels-like <span className={s.hsPill}>wind chill</span>
@@ -335,7 +313,18 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
               )}
             </div>
           </div>
-          {/* Snow line */}
+          <div className={s.stat}>
+            <div className={s.statLabel}><Wind size={11} /> Wind</div>
+            <div className={s.statValue} style={{ color: "var(--c-wind)" }}>
+              &le;{wMax.toFixed(1)}<span className={s.statUnit}> m/s</span>
+              {" "}<TrendIcon trend={windTrend} />
+            </div>
+            {ddVals.length > 0 && (
+              <div className={s.hsAux}>
+                <WindGlyph deg={domDir} /> from {cardinal} &middot; {Math.round(domDir)}&deg;
+              </div>
+            )}
+          </div>
           <div className={s.stat}>
             <div className={s.statLabel}><Snowflake size={11} /> Snow line</div>
             <div className={s.statValue} style={{ color: "var(--ice)" }}>
@@ -351,6 +340,16 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
         </div>
         <ScoreDonut score={Math.round(w.avgScore)} rating={w.rating} />
       </div>
+
+      {totalWindows > 1 && (
+        <div className={s.nav}>
+          <button className={s.navBtn} onClick={onPrev} disabled={selectedIdx === 0} aria-label="Previous window">&#8249;</button>
+          <span className={s.navLabel}>
+            {w.hours}h &middot; {sameDay ? `${wd(a)} ${fmtDay(a)}` : `${fmtDay(a)} – ${fmtDay(b)}`}
+          </span>
+          <button className={s.navBtn} onClick={onNext} disabled={selectedIdx >= totalWindows - 1} aria-label="Next window">&#8250;</button>
+        </div>
+      )}
     </div>
   );
 }

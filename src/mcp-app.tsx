@@ -1,4 +1,3 @@
-import type { App } from "@modelcontextprotocol/ext-apps";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { createContext, StrictMode, use, useCallback, useEffect, useMemo, useState } from "react";
@@ -10,13 +9,10 @@ import type { CursorState, PeakWindowResult } from "./types.ts";
 import { computeSunMarkers } from "./sun.ts";
 import { TopBar } from "./components/TopBar.tsx";
 import { HeroWindow } from "./components/HeroWindow.tsx";
-import { PeakCard, type PeakForm } from "./components/PeakCard.tsx";
-import { HorizonTape } from "./components/HorizonTape.tsx";
 import { MountainProfile } from "./components/MountainProfile.tsx";
 import { ChartPanels, type VentuskyPayload } from "./ventusky.tsx";
 import { StatsRow } from "./components/StatsRow.tsx";
 import { WeekOverview } from "./components/WeekOverview.tsx";
-import { WindowsList } from "./components/WindowsList.tsx";
 import { FloatingTooltip } from "./components/FloatingTooltip.tsx";
 
 function parseResult(r: CallToolResult | null): PeakWindowResult | null {
@@ -32,11 +28,8 @@ function parseResult(r: CallToolResult | null): PeakWindowResult | null {
 }
 
 interface McpContextValue {
-  app: App;
   data: PeakWindowResult | null;
-  setToolResult: (r: CallToolResult | null) => void;
   busy: boolean;
-  setBusy: (b: boolean) => void;
 }
 
 const McpContext = createContext<McpContextValue | null>(null);
@@ -46,35 +39,28 @@ function McpProvider({ children }: { children: React.ReactNode }) {
   const [busy, setBusy] = useState(false);
   const data = useMemo(() => parseResult(toolResult), [toolResult]);
 
-  const { app, error } = useApp({
+  const { isConnected, error } = useApp({
     appInfo: { name: "PeakWindow", version: "1.0.0" },
     capabilities: {},
     onAppCreated: (a) => {
-      a.ontoolresult = async (result) => { setToolResult(result); };
+      a.ontoolresult = async (result) => { setToolResult(result); setBusy(false); };
       a.onerror = console.error;
       a.onteardown = async () => ({});
     },
   });
 
   if (error) return <div className={styles.error}>ERROR: {error.message}</div>;
-  if (!app) return <div className={styles.loading}>Connecting...</div>;
+  if (!isConnected) return <div className={styles.loading}>Connecting...</div>;
 
   return (
-    <McpContext value={{ app, data, setToolResult, busy, setBusy }}>
+    <McpContext value={{ data, busy }}>
       {children}
     </McpContext>
   );
 }
 
 function PeakWindowApp() {
-  const { app, data, setToolResult, busy, setBusy } = use(McpContext)!;
-
-  const [form, setForm] = useState<PeakForm>({
-    peakName: data?.peakName ?? "Großglockner",
-    lat: data?.lat?.toString() ?? "47.0741",
-    lon: data?.lon?.toString() ?? "12.6939",
-    summitElevationM: data?.summitElevationM?.toString() ?? "3798",
-  });
+  const { data, busy } = use(McpContext)!;
 
   const [showNight, setShowNight] = useState(true);
   const [showCloud, setShowCloud] = useState(true);
@@ -83,37 +69,8 @@ function PeakWindowApp() {
   const [selectedIdx, setSelectedIdx] = useState(0);
 
   useEffect(() => {
-    if (data) {
-      setForm(prev => ({
-        peakName: data.peakName ?? prev.peakName,
-        lat: data.lat.toString(),
-        lon: data.lon.toString(),
-        summitElevationM: data.summitElevationM?.toString() ?? prev.summitElevationM,
-      }));
-      setSelectedIdx(0);
-    }
+    if (data) setSelectedIdx(0);
   }, [data]);
-
-  const handleAnalyze = useCallback(async () => {
-    setBusy(true);
-    try {
-      const summitNum = form.summitElevationM ? parseFloat(form.summitElevationM) : undefined;
-      const result = await app.callServerTool({
-        name: "peak-window",
-        arguments: {
-          lat: parseFloat(form.lat),
-          lon: parseFloat(form.lon),
-          peakName: form.peakName || undefined,
-          summitElevationM: Number.isFinite(summitNum as number) ? summitNum : undefined,
-        },
-      });
-      setToolResult(result as CallToolResult);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setBusy(false);
-    }
-  }, [app, form, setBusy, setToolResult]);
 
   const sunMarkers = useMemo(() => {
     if (!data) return [];
@@ -159,44 +116,29 @@ function PeakWindowApp() {
 
       {!data && !busy && (
         <div className={styles.empty}>
-          Pick a peak and tap <strong>Analyze</strong>, or ask Claude to run the <code>peak-window</code> tool.
+          Ask Claude to run the <code>peak-window</code> tool for any summit.
         </div>
       )}
 
       {data && (
         <>
-          <div className={styles.hero}>
-            <HeroWindow
-              window={selectedWindow}
-              hours={data.hours}
-              sunMarkers={sunMarkers}
-              totalHours={data.series.time.length}
-              selectedIdx={selectedIdx}
-              totalWindows={windows.length}
-              summitElevation={data.summitElevationM}
-              onPrev={() => setSelectedIdx(Math.max(0, selectedIdx - 1))}
-              onNext={() => setSelectedIdx(Math.min(windows.length - 1, selectedIdx + 1))}
-            />
-            <PeakCard form={form} setForm={setForm} data={data} onAnalyze={handleAnalyze} loading={busy} />
-          </div>
+          <HeroWindow
+            window={selectedWindow}
+            hours={data.hours}
+            sunMarkers={sunMarkers}
+            totalHours={data.series.time.length}
+            selectedIdx={selectedIdx}
+            totalWindows={windows.length}
+            summitElevation={data.summitElevationM}
+            onPrev={() => setSelectedIdx(Math.max(0, selectedIdx - 1))}
+            onNext={() => setSelectedIdx(Math.min(windows.length - 1, selectedIdx + 1))}
+          />
 
           <WeekOverview
             hours={data.hours}
             windows={windows}
             selectedIdx={selectedIdx}
             onSelect={setSelectedIdx}
-          />
-
-          <WindowsList
-            windows={windows}
-            selectedIdx={selectedIdx}
-            onSelect={setSelectedIdx}
-          />
-
-          <HorizonTape
-            hours={data.hours}
-            times={data.series.time}
-            sunMarkers={sunMarkers}
             cursorIdx={cursor?.idx ?? null}
             onHover={handleTapeHover}
           />
