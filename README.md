@@ -13,11 +13,13 @@ An MCP App that analyzes upcoming weather at alpine peaks and trailheads across 
 
 ## Requirements
 
-This is an **MCP App** — it requires an MCP host that supports the Apps protocol to render its interactive UI. Currently supported hosts:
+This is an **MCP App** — it requires an MCP host that supports the [Apps protocol](https://apps.extensions.modelcontextprotocol.io/) to render its interactive UI. Compatible hosts include:
 
 - [Claude Desktop](https://claude.ai/download) (macOS / Windows)
+- [ChatGPT](https://chatgpt.com/) (via OpenAI Apps SDK)
+- Any chat client implementing the MCP Apps spec
 
-The server itself runs as a standard MCP server over **stdio** or **SSE**, but the rich UI (charts, horizon tape, mountain profile) is only displayed inside a compatible host. Without one you still get the scored text output.
+The server runs as a standard MCP server over **stdio** or **SSE**. The rich UI (charts, horizon tape, mountain profile) renders inline in any compliant host. Without one you still get the scored text output.
 
 [Live UI demo (static mock data)](https://byteoverdev.github.io/peak-window-mcp-app/)
 
