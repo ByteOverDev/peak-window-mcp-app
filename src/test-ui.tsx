@@ -177,7 +177,11 @@ function TestApp() {
         totalHours={data.series.time.length}
         selectedIdx={selectedIdx}
         totalWindows={windows.length}
+        peakName={data.peakName}
+        lat={data.lat}
+        lon={data.lon}
         summitElevation={data.summitElevationM}
+
         onPrev={() => setSelectedIdx(Math.max(0, selectedIdx - 1))}
         onNext={() => setSelectedIdx(Math.min(windows.length - 1, selectedIdx + 1))}
       />

@@ -1,4 +1,4 @@
-import { CloudFog, Droplets, MoveRight, Snowflake, Thermometer, TrendingDown, TrendingUp, Wind } from "lucide-react";
+import { CloudFog, Droplets, MapPin, Mountain, MoveRight, Snowflake, Thermometer, TrendingDown, TrendingUp, Wind } from "lucide-react";
 import { useMemo } from "react";
 import { ratingColor } from "../rating-color.ts";
 import type { ClimbWindow, ScoredHour, SunMarker } from "../types.ts";
@@ -208,12 +208,15 @@ interface HeroWindowProps {
   totalHours: number;
   selectedIdx: number;
   totalWindows: number;
+  peakName?: string | null;
+  lat?: number;
+  lon?: number;
   summitElevation?: number | null;
   onPrev: () => void;
   onNext: () => void;
 }
 
-export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedIdx, totalWindows, summitElevation, onPrev, onNext }: HeroWindowProps) {
+export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedIdx, totalWindows, peakName, lat, lon, summitElevation, onPrev, onNext }: HeroWindowProps) {
   if (!w) {
     return (
       <div className={`${s.card} ${s.hero}`}>
@@ -270,6 +273,11 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
         <span className={s.pulse}>
           {selectedIdx === 0 ? "Top climb window" : `Climb window ${selectedIdx + 1} of ${totalWindows}`}
         </span>
+        <div className={s.peakInfo}>
+          {peakName && <span className={s.peakName}><Mountain size={12} />{peakName}</span>}
+          {summitElevation != null && <span className={s.peakMeta}>{summitElevation.toLocaleString()} m</span>}
+          {lat != null && lon != null && <span className={s.peakMeta}><MapPin size={10} />{lat.toFixed(3)}&deg;N, {lon.toFixed(3)}&deg;E</span>}
+        </div>
       </div>
       <div>
         <div className={s.heroTime}>
