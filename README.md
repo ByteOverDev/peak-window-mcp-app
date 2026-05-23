@@ -11,7 +11,36 @@ An MCP App that analyzes upcoming weather at alpine peaks and trailheads across 
 - Scores each hour against alpine climbing thresholds and identifies contiguous good-weather windows
 - Serves an interactive UI (React, uPlot charts) as an MCP App resource with horizon tape, mountain profile, and Ventusky-style chart panels
 
-## Quick start
+## Requirements
+
+This is an **MCP App** — it requires an MCP host that supports the Apps protocol to render its interactive UI. Currently supported hosts:
+
+- [Claude Desktop](https://claude.ai/download) (macOS / Windows)
+
+The server itself runs as a standard MCP server over **stdio** or **SSE**, but the rich UI (charts, horizon tape, mountain profile) is only displayed inside a compatible host. Without one you still get the scored text output.
+
+[Live UI demo (static mock data)](https://byteoverdev.github.io/peak-window-mcp-app/)
+
+## Setup
+
+### Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "peak-window": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/peak-window-mcp-app/main.ts", "--stdio"]
+    }
+  }
+}
+```
+
+Then ask Claude something like: *"What's the best weather window to climb Großglockner this week?"*
+
+### Manual / development
 
 ```bash
 npm install
