@@ -1,0 +1,251 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-1), var(--shadow-2);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero {
+  padding: 22px 24px 24px;
+  box-shadow: var(--shadow-hero-1), var(--shadow-hero-2);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 340px;
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 100% at 100% 0%, var(--gold-soft), transparent 60%),
+    radial-gradient(ellipse 50% 80% at 0% 100%, rgba(125,211,252,0.04), transparent 70%);
+  z-index: 0;
+}
+.hero > * { position: relative; z-index: 1; }
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.pulse::before {
+  content: "";
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 4px var(--gold-soft);
+  animation: hb 2s ease-in-out infinite;
+}
+@keyframes hb { 50% { transform: scale(1.15); opacity: 0.7; } }
+.eyeMeta {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Navigation buttons */
+.nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.navBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 120ms;
+}
+.navBtn:hover:not(:disabled) {
+  border-color: var(--gold-line);
+  color: var(--gold);
+  background: var(--gold-soft);
+}
+.navBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.heroTime {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 38px;
+  letter-spacing: -0.022em;
+  line-height: 1.0;
+}
+.arrow { color: var(--text-faint); font-weight: 400; margin: 0 4px; }
+.heroSub {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: -4px;
+  line-height: 1.45;
+  max-width: 460px;
+}
+.heroSlot {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-style: italic;
+  color: var(--text-soft);
+}
+
+/* Sun arc */
+.sunArc { height: 72px; display: flex; flex-direction: column; gap: 6px; }
+.sunArcBar {
+  flex: 1;
+  min-height: 28px;
+  border-radius: 8px;
+  position: relative;
+  background:
+    linear-gradient(to right,
+      rgba(255,245,220,0.02) 0%,
+      rgba(255,245,220,0.02) var(--sunrise),
+      rgba(212,160,86,0.10) var(--sunrise),
+      rgba(212,160,86,0.10) var(--sunset),
+      rgba(255,245,220,0.02) var(--sunset),
+      rgba(255,245,220,0.02) 100%);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.sunArcBar svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sunArcLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Hero stats */
+.heroRow { display: flex; align-items: stretch; gap: 22px; margin-top: 4px; }
+.heroStats {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 18px;
+  align-content: end;
+}
+.stat { display: flex; flex-direction: column; gap: 2px; }
+.statLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.statValue {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  font-variant-numeric: tabular-nums;
+}
+.statUnit { font-size: 13px; color: var(--text-muted); font-weight: 400; margin-left: 2px; }
+
+/* Pill badge */
+.hsPill {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  color: var(--text-faint);
+}
+
+/* Auxiliary info under stat values */
+.hsAux {
+  margin-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
+}
+.hsAuxFlag { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: lowercase; }
+.hsAuxFlagSnow { color: var(--c-snow); }
+.hsAuxFlagRain { color: var(--c-precip); }
+.hsAuxFlagMixed { color: #c084fc; }
+
+/* Alert chips */
+.heroAlerts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -6px; }
+.alertChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+  border: 1px solid;
+}
+.alertChipWarn {
+  background: rgba(251,191,36,0.10);
+  border-color: rgba(251,191,36,0.45);
+  color: var(--c-feels);
+}
+.alertChipInfo {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-soft);
+}
+
+/* Score donut */
+.orb {
+  width: 144px; height: 144px;
+  position: relative;
+  flex-shrink: 0;
+  align-self: center;
+}
+.orb svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.orbText {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  line-height: 1; gap: 2px;
+}
+.orbNum {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 44px;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+}
+.orbOf { color: var(--text-muted); font-size: 10.5px; font-weight: 500; letter-spacing: 0.06em; margin-top: 2px; }
+.orbRating {
+  margin-top: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}

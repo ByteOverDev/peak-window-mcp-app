@@ -1,0 +1,123 @@
+/* Chart panels — Alpenglow edition */
+
+.wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--hairline);
+  flex-wrap: wrap;
+}
+.headerLeft { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; min-width: 0; }
+.title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: -0.012em;
+  margin: 0;
+}
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.meta strong { color: var(--text); font-weight: 500; }
+.toggles { display: flex; gap: 6px; flex-shrink: 0; }
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 7px;
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+  font-size: 12px;
+  transition: all 140ms;
+  font-weight: 500;
+}
+.toggle:hover { color: var(--text) !important; border-color: var(--border-strong) !important; }
+.toggle[aria-pressed="true"] {
+  background: var(--gold-soft) !important;
+  border-color: var(--gold-line) !important;
+  color: var(--gold) !important;
+}
+
+.lapseLine {
+  padding: 10px 20px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.lapseLine strong { color: var(--text); font-weight: 500; }
+.lapseSep { color: var(--text-faint); }
+
+.forecastBody {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 0;
+}
+@media (max-width: 880px) {
+  .forecastBody { grid-template-columns: 1fr; }
+}
+
+.panels { padding: 4px 6px 0; position: relative; min-width: 0; }
+.panel {
+  position: relative;
+  border-bottom: 1px solid var(--hairline);
+  padding-top: 22px;
+}
+.panel:last-child { border-bottom: 0; }
+.panelLabel {
+  position: absolute;
+  top: 4px;
+  left: 52px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 4;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.panelAux {
+  color: var(--text-faint);
+  font-weight: 500;
+  margin-left: 5px;
+  letter-spacing: 0.08em;
+}
+
+.source {
+  padding: 12px 20px 14px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  border-top: 1px solid var(--hairline);
+  font-variant-numeric: tabular-nums;
+}
+
+/* uPlot overrides */
+:global(.uplot), :global(.uplot) * {
+  font-family: var(--font-sans);
+}
+:global(.uplot .u-legend) { display: none; }
+:global(.uplot .u-cursor-pt) { display: none !important; }
+:global(.u-over) { cursor: crosshair; }

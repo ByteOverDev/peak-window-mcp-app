@@ -1,0 +1,46 @@
+{
+  "name": "peak-window",
+  "version": "1.0.0",
+  "description": "PeakWindow MCP App - climb/ascent weather windows from GeoSphere Austria",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build:ui && npm run build:server",
+    "serve": "tsx main.ts",
+    "serve:stdio": "tsx main.ts --stdio",
+    "dev": "cross-env NODE_ENV=development concurrently 'cross-env INPUT=mcp-app.html vite build --watch' 'tsx --watch main.ts'",
+    "start": "npm run build && npm run serve",
+    "build:ui": "cross-env INPUT=mcp-app.html vite build",
+    "build:server": "esbuild main.ts --bundle --platform=node --format=esm --outfile=dist/index.js --packages=external --banner:js='#!/usr/bin/env node'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "lucide-react": "^1.16.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "uplot": "^1.6.32",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.14",
+    "vite-plugin-singlefile": "^2.3.3"
+  }
+}

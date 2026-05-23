@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.png
+snap.txt
+.claude/settings.local.json

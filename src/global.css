@@ -1,0 +1,104 @@
+/* PeakWindow — Alpenglow design tokens */
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("./fonts/Fraunces-variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+
+  /* Surfaces */
+  --bg:        light-dark(#f4ede0, #0c1018);
+  --bg-tex:    light-dark(#efe7d6, #0e131e);
+  --surface:   light-dark(#fbf6ec, #161b28);
+  --surface-2: light-dark(#ece3d0, #1d2333);
+  --surface-3: light-dark(#e1d6bf, #232a3d);
+  --input:     light-dark(#fbf7ee, #0f1422);
+
+  /* Lines */
+  --border:        light-dark(rgba(28,36,56,0.10), rgba(255,245,220,0.07));
+  --border-strong: light-dark(rgba(28,36,56,0.22), rgba(255,245,220,0.14));
+  --hairline:      light-dark(rgba(28,36,56,0.06), rgba(255,245,220,0.04));
+  --grid:          light-dark(rgba(28,36,56,0.06), rgba(255,245,220,0.04));
+  --grid-axis:     light-dark(rgba(28,36,56,0.14), rgba(255,245,220,0.10));
+
+  /* Type */
+  --text:       light-dark(#1c2438, #efe8d6);
+  --text-soft:  light-dark(#2c3650, #d0c9b8);
+  --text-muted: light-dark(#5d6478, #8c8676);
+  --text-faint: light-dark(#8a8478, #5a564b);
+
+  /* Brand */
+  --gold:       light-dark(#8a6420, #d4a056);
+  --gold-soft:  light-dark(rgba(138,100,32,0.13), rgba(212,160,86,0.16));
+  --gold-line:  light-dark(rgba(138,100,32,0.45), rgba(212,160,86,0.45));
+  --gold-deep:  light-dark(#6a4a14, #b8842e);
+  --terracotta: light-dark(#b85534, #d97757);
+  --sage:       light-dark(#4a7060, #84a892);
+  --ice:        light-dark(#2e7eaf, #7dd3fc);
+
+  /* Metric colors */
+  --c-temp:      light-dark(#d6443a, #f97366);
+  --c-temp-fill: light-dark(rgba(214,68,58,0.14), rgba(249,115,102,0.18));
+  --c-wind:      light-dark(#4f5cd1, #a5b4fc);
+  --c-gust:      light-dark(#28266d, #c7d2fe);
+  --c-precip:    light-dark(#0284c7, #38bdf8);
+  --c-precip-fill: light-dark(rgba(56,189,248,0.7), rgba(56,189,248,0.55));
+  --c-snow:      light-dark(#7dc4ed, #bae6fd);
+  --c-snow-fill: light-dark(rgba(186,230,253,0.9), rgba(186,230,253,0.55));
+  --c-snowlmt:   light-dark(#1e3a8a, #e0f2fe);
+  --c-cloud:     light-dark(#4a5468, #94a3b8);
+  --c-feels:     light-dark(#c47a1e, #fbbf24);
+  --c-sun:       light-dark(#c89a3a, #fbbf24);
+  --night-fill:  light-dark(rgba(28,36,56,0.05), rgba(255,245,220,0.025));
+
+  /* Score */
+  --score-ideal:    light-dark(#2f8a4a, #4ade80);
+  --score-good:     light-dark(#7a9928, #a3e635);
+  --score-marginal: light-dark(#c4801e, #fbbf24);
+  --score-avoid:    light-dark(#b8362e, #f87171);
+
+  --shadow-1: light-dark(0 1px 3px rgba(28,36,56,0.04), 0 1px 0 rgba(255,245,220,0.02) inset);
+  --shadow-2: light-dark(0 8px 24px rgba(28,36,56,0.06), 0 12px 32px rgba(0,0,0,0.4));
+  --shadow-hero-1: light-dark(0 1px 3px rgba(28,36,56,0.04), 0 1px 0 rgba(255,245,220,0.04) inset);
+  --shadow-hero-2: light-dark(0 22px 60px rgba(28,36,56,0.10), 0 24px 60px rgba(0,0,0,0.5));
+
+  /* Topo line pattern */
+  --topo-color: light-dark(rgba(138,100,32,0.08), rgba(212,160,86,0.05));
+
+  /* Fonts */
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 80% 0%, var(--gold-soft), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 0% 100%, rgba(125,211,252,0.04), transparent 70%);
+}
+
+#root { position: relative; z-index: 1; min-height: 100vh; }
+
+button { font: inherit; cursor: pointer; color: inherit; border: 0; background: none; }
+input { font: inherit; color: inherit; }
