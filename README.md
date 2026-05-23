@@ -2,6 +2,8 @@
 
 An MCP App that analyzes upcoming weather at alpine peaks and trailheads across Austria, ranking the best windows for climbing and ascent. Powered by the GeoSphere Austria NWP forecast (AROME 2.5 km, hourly).
 
+![PeakWindow UI](screenshot.png)
+
 ## What it does
 
 - Fetches hourly forecasts (temperature, precipitation, wind, gusts, cloud cover, snow line) from the GeoSphere Austria open-data API
