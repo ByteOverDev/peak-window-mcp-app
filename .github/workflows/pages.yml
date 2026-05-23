@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm install
       - run: INPUT=test-ui.html npx vite build --outDir pages
       - run: mv pages/test-ui.html pages/index.html
       - run: cp screenshot.png pages/
