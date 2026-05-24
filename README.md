@@ -2,7 +2,9 @@
 
 An MCP App that analyzes upcoming weather at alpine peaks and trailheads worldwide, ranking the best windows for climbing and ascent. Uses the best available forecast model for each region: GeoSphere Austria AROME (2.5 km) for Central Europe, MeteoSwiss ICON-CH2 (2 km) for the Alpine region, Météo-France AROME (2.5 km) for France, and Open-Meteo globally (~11 km).
 
-![PeakWindow UI](screenshot.png)
+<p align="center">
+  <img src="screenshot.png" alt="PeakWindow UI" width="700" />
+</p>
 
 ## What it does
 
