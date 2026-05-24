@@ -71,42 +71,50 @@ function cssVar(name: string): string {
 
 const SYNC_KEY = "peakwindow-sync";
 
+function fillNightRegions(ctx: CanvasRenderingContext2D, u: uPlot, sun: SunEvent[], minT: number, maxT: number) {
+  ctx.fillStyle = cssVar("--night-fill");
+  let cursor = minT;
+  for (const e of sun) {
+    if (e.sunrise > cursor && e.sunrise <= maxT) {
+      const x0 = u.valToPos(cursor, "x", true);
+      const x1 = u.valToPos(Math.min(e.sunrise, maxT), "x", true);
+      ctx.fillRect(x0, u.bbox.top, x1 - x0, u.bbox.height);
+    }
+    cursor = Math.max(cursor, e.sunset);
+  }
+  if (cursor < maxT) {
+    const x0 = u.valToPos(cursor, "x", true);
+    const x1 = u.valToPos(maxT, "x", true);
+    ctx.fillRect(x0, u.bbox.top, x1 - x0, u.bbox.height);
+  }
+}
+
+function drawSunLines(ctx: CanvasRenderingContext2D, u: uPlot, sun: SunEvent[], minT: number, maxT: number) {
+  ctx.strokeStyle = cssVar("--c-sun");
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.45;
+  ctx.setLineDash([3, 3]);
+  for (const e of sun) {
+    for (const ts of [e.sunrise, e.sunset]) {
+      if (ts < minT || ts > maxT) continue;
+      const x = Math.round(u.valToPos(ts, "x", true)) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x, u.bbox.top);
+      ctx.lineTo(x, u.bbox.top + u.bbox.height);
+      ctx.stroke();
+    }
+  }
+}
+
 function nightBandsHook(sun: SunEvent[], on: () => boolean) {
   return (u: uPlot) => {
     if (!on()) return;
     const ctx = u.ctx;
     ctx.save();
-    ctx.fillStyle = cssVar("--night-fill");
     const minT = u.data[0][0] as number;
     const maxT = u.data[0][u.data[0].length - 1] as number;
-    let cursor = minT;
-    for (const e of sun) {
-      if (e.sunrise > cursor && e.sunrise <= maxT) {
-        const x0 = u.valToPos(cursor, "x", true);
-        const x1 = u.valToPos(Math.min(e.sunrise, maxT), "x", true);
-        ctx.fillRect(x0, u.bbox.top, x1 - x0, u.bbox.height);
-      }
-      cursor = Math.max(cursor, e.sunset);
-    }
-    if (cursor < maxT) {
-      const x0 = u.valToPos(cursor, "x", true);
-      const x1 = u.valToPos(maxT, "x", true);
-      ctx.fillRect(x0, u.bbox.top, x1 - x0, u.bbox.height);
-    }
-    ctx.strokeStyle = cssVar("--c-sun");
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.45;
-    ctx.setLineDash([3, 3]);
-    for (const e of sun) {
-      for (const ts of [e.sunrise, e.sunset]) {
-        if (ts < minT || ts > maxT) continue;
-        const x = Math.round(u.valToPos(ts, "x", true)) + 0.5;
-        ctx.beginPath();
-        ctx.moveTo(x, u.bbox.top);
-        ctx.lineTo(x, u.bbox.top + u.bbox.height);
-        ctx.stroke();
-      }
-    }
+    fillNightRegions(ctx, u, sun, minT, maxT);
+    drawSunLines(ctx, u, sun, minT, maxT);
     ctx.restore();
   };
 }
@@ -165,62 +173,65 @@ function cursorLineHook() {
 }
 
 
+function drawSnowFill(ctx: CanvasRenderingContext2D, u: uPlot, summitM: number, times: ArrayLike<number | null | undefined>, snowlmt: ArrayLike<number | null | undefined>) {
+  const ySummit = u.valToPos(summitM, "m", true);
+  ctx.save();
+  ctx.fillStyle = cssVar("--c-snowlmt");
+  ctx.globalAlpha = 0.13;
+  ctx.beginPath();
+  let inFill = false;
+  for (let i = 0; i < times.length; i++) {
+    const sl = snowlmt[i];
+    if (sl == null) { inFill = false; continue; }
+    if ((sl as number) < summitM) {
+      const x = u.valToPos(times[i] as number, "x", true);
+      const y = u.valToPos(sl as number, "m", true);
+      if (!inFill) { ctx.moveTo(x, ySummit); inFill = true; }
+      ctx.lineTo(x, y);
+    } else if (inFill) {
+      ctx.lineTo(u.valToPos(times[i] as number, "x", true), ySummit);
+      inFill = false;
+    }
+  }
+  if (inFill) {
+    ctx.lineTo(u.valToPos(times[times.length - 1] as number, "x", true), ySummit);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawSummitLabel(ctx: CanvasRenderingContext2D, u: uPlot, summitM: number) {
+  const scale = u.scales["m"];
+  if (!scale || summitM < (scale.min ?? 0) || summitM > (scale.max ?? Infinity)) return;
+  const ySummit = u.valToPos(summitM, "m", true);
+  ctx.save();
+  ctx.strokeStyle = cssVar("--text-muted");
+  ctx.globalAlpha = 0.55;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(u.bbox.left, ySummit);
+  ctx.lineTo(u.bbox.left + u.bbox.width, ySummit);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 0.7;
+  ctx.fillStyle = cssVar("--text-muted");
+  ctx.font = "600 9.5px ui-sans-serif, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(`SUMMIT ${summitM}m`, u.bbox.left + 6, ySummit - 2);
+  ctx.restore();
+}
+
 function summitFillHook(summitM: number): (u: uPlot) => void {
   return (u) => {
     const scale = u.scales["m"];
     if (!scale || scale.min == null || scale.max == null) return;
-    const ctx = u.ctx;
-    const times = u.data[0];
     const snowlmt = u.data[2];
     if (!snowlmt) return;
-    const ySummit = u.valToPos(summitM, "m", true);
-
-    ctx.save();
-    ctx.fillStyle = cssVar("--c-snowlmt");
-    ctx.globalAlpha = 0.13;
-    ctx.beginPath();
-    let inFill = false;
-    for (let i = 0; i < times.length; i++) {
-      const sl = snowlmt[i];
-      if (sl == null) { inFill = false; continue; }
-      if ((sl as number) < summitM) {
-        const x = u.valToPos(times[i] as number, "x", true);
-        const y = u.valToPos(sl as number, "m", true);
-        if (!inFill) { ctx.moveTo(x, ySummit); inFill = true; }
-        ctx.lineTo(x, y);
-      } else if (inFill) {
-        const x = u.valToPos(times[i] as number, "x", true);
-        ctx.lineTo(x, ySummit);
-        inFill = false;
-      }
-    }
-    if (inFill) {
-      const xEnd = u.valToPos(times[times.length - 1] as number, "x", true);
-      ctx.lineTo(xEnd, ySummit);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-
-    if (summitM >= (scale.min ?? 0) && summitM <= (scale.max ?? Infinity)) {
-      ctx.save();
-      ctx.strokeStyle = cssVar("--text-muted");
-      ctx.globalAlpha = 0.55;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([2, 3]);
-      ctx.beginPath();
-      ctx.moveTo(u.bbox.left, ySummit);
-      ctx.lineTo(u.bbox.left + u.bbox.width, ySummit);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 0.7;
-      ctx.fillStyle = cssVar("--text-muted");
-      ctx.font = "600 9.5px ui-sans-serif, system-ui, sans-serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(`SUMMIT ${summitM}m`, u.bbox.left + 6, ySummit - 2);
-      ctx.restore();
-    }
+    drawSnowFill(u.ctx, u, summitM, u.data[0], snowlmt);
+    drawSummitLabel(u.ctx, u, summitM);
   };
 }
 
