@@ -74,7 +74,7 @@ function ScoreDonut({ score, rating }: { score: number; rating: string }) {
   const offset = C - (score / 100) * C;
   return (
     <div className={s.orb}>
-      <svg viewBox="0 0 120 120">
+      <svg viewBox="0 0 120 120" role="img" aria-label={`Weather score: ${score} out of 100, rated ${rating}`}>
         <circle cx="60" cy="60" r={r} fill="none" stroke="var(--surface-2)" strokeWidth="9" />
         <circle cx="60" cy="60" r={r} fill="none" stroke={ratingColor(rating)} strokeWidth="9"
           strokeLinecap="round" strokeDasharray={C} strokeDashoffset={offset}
@@ -130,7 +130,7 @@ function SunArc({ window: w, sunMarkers }: { window: ClimbWindow; sunMarkers: Su
   return (
     <div className={s.sunArc}>
       <div className={s.sunArcBar} style={{ "--sunrise": `${sunriseFrac * 100}%`, "--sunset": `${sunsetFrac * 100}%` } as React.CSSProperties}>
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`Sun arc: sunrise ${fmtHM(new Date(sm.sunriseEpoch * 1000))}, sunset ${fmtHM(new Date(sm.sunsetEpoch * 1000))}, climb window ${fmtHM(new Date(w.start))} to ${fmtHM(new Date(w.end))}`}>
           <rect x={winLeft * 10} y={0} width={winWidth * 10} height={H} fill="var(--gold-soft)" />
           <polyline points={curvePts} fill="none" stroke="var(--gold)" strokeWidth="1.2"
             strokeLinecap="round" strokeDasharray="2,3" opacity="0.7" />
@@ -217,6 +217,13 @@ interface HeroWindowProps {
 }
 
 export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedIdx, totalWindows, peakName, lat, lon, summitElevation, onPrev, onNext }: HeroWindowProps) {
+  const slice = useMemo(() => {
+    if (!w) return [];
+    const startIdx = hours.findIndex(h => h.time === w.start);
+    const endIdx = hours.findIndex(h => h.time === w.end);
+    return hours.slice(startIdx, endIdx + 1);
+  }, [hours, w?.start, w?.end]);
+
   if (!w) {
     return (
       <div className={`${s.card} ${s.hero}`}>
@@ -231,12 +238,6 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
   const b = new Date(w.end);
   const sameDay = a.toDateString() === b.toDateString();
   const summit = summitElevation ?? null;
-
-  const slice = useMemo(() => {
-    const startIdx = hours.findIndex(h => h.time === w.start);
-    const endIdx = hours.findIndex(h => h.time === w.end);
-    return hours.slice(startIdx, endIdx + 1);
-  }, [hours, w.start, w.end]);
 
   const tMin = Math.min(...slice.map(h => h.t2m ?? 0));
   const tMax = Math.max(...slice.map(h => h.t2m ?? 0));

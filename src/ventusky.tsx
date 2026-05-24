@@ -35,12 +35,14 @@ export interface VentuskyPayload {
   score?: (number | null)[];
 }
 
-// Resolve a CSS custom property to an actual color value.
+// Resolve CSS custom properties to canvas-usable color values.
 // `light-dark()` is understood by CSS but NOT by Canvas 2D, so we
-// apply the property to a hidden probe element and read back the
-// browser-resolved value.
+// resolve via a hidden probe element once per theme, then cache.
+const _varCache = new Map<string, string>();
 let _probe: HTMLElement | null = null;
-function cssVar(name: string): string {
+let _schemeListener = false;
+
+function _resolveVar(name: string): string {
   if (!_probe) {
     _probe = document.createElement("div");
     _probe.style.display = "none";
@@ -48,6 +50,23 @@ function cssVar(name: string): string {
   }
   _probe.style.color = `var(${name})`;
   return getComputedStyle(_probe).color;
+}
+
+function _invalidateCache() {
+  _varCache.clear();
+}
+
+function cssVar(name: string): string {
+  if (!_schemeListener) {
+    _schemeListener = true;
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", _invalidateCache);
+  }
+  let val = _varCache.get(name);
+  if (val == null) {
+    val = _resolveVar(name);
+    _varCache.set(name, val);
+  }
+  return val;
 }
 
 const SYNC_KEY = "peakwindow-sync";

@@ -30,3 +30,30 @@
   background: var(--surface);
 }
 .error { color: var(--score-avoid); border-color: var(--score-avoid); }
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.skelBlock {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+}
+.skelBlock::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--gold-soft) 50%, transparent 100%);
+  animation: skelShimmer 1.8s ease-in-out infinite;
+}
+@keyframes skelShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.skelHero { height: 340px; }
+.skelOverview { height: 200px; }
+.skelChart { height: 420px; }

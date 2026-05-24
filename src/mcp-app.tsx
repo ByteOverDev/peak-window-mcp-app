@@ -36,7 +36,7 @@ const McpContext = createContext<McpContextValue | null>(null);
 
 function McpProvider({ children }: { children: React.ReactNode }) {
   const [toolResult, setToolResult] = useState<CallToolResult | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const data = useMemo(() => parseResult(toolResult), [toolResult]);
 
   const { isConnected, error } = useApp({
@@ -44,7 +44,7 @@ function McpProvider({ children }: { children: React.ReactNode }) {
     capabilities: {},
     onAppCreated: (a) => {
       a.ontoolresult = async (result) => { setToolResult(result); setBusy(false); };
-      a.onerror = console.error;
+      a.onerror = (e) => { console.error(e); setBusy(false); };
       a.onteardown = async () => ({});
     },
   });
@@ -117,6 +117,14 @@ function PeakWindowApp() {
       {!data && !busy && (
         <div className={styles.empty}>
           Ask Claude to run the <code>peak-window</code> tool for any summit.
+        </div>
+      )}
+
+      {!data && busy && (
+        <div className={styles.skeleton} role="status" aria-label="Loading forecast data">
+          <div className={`${styles.skelBlock} ${styles.skelHero}`} />
+          <div className={`${styles.skelBlock} ${styles.skelOverview}`} />
+          <div className={`${styles.skelBlock} ${styles.skelChart}`} />
         </div>
       )}
 

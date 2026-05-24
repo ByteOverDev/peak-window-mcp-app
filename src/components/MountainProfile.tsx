@@ -69,7 +69,7 @@ export function MountainProfile({ data, cursorIdx }: MountainProfileProps) {
     <div className={s.rail}>
       <div className={s.title}>Elevation profile</div>
       <div className={s.svgWrap}>
-        <svg viewBox={`0 0 ${W} ${H}`}>
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Elevation profile: ${peakNameStr} at ${summit.toLocaleString()}m, snow line at ${snowLine.toLocaleString()}m, grid at ${grid.toLocaleString()}m`}>
           <defs>
             <linearGradient id="pw-sky" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--gold-soft)" stopOpacity="0.5" />

@@ -44,14 +44,16 @@ export function scoreHour(h: HourData): ScoredHour {
 
   const wind = h.gust ?? h.wsp;
   if (wind !== null) {
-    if (wind >= 20) { score -= 50; reasons.push(`dangerous wind ${wind.toFixed(0)}m/s`); }
-    else if (wind >= 12) { score -= 25; reasons.push(`strong wind ${wind.toFixed(0)}m/s`); }
-    else if (wind >= 8) { score -= 10; reasons.push(`brisk wind ${wind.toFixed(0)}m/s`); }
+    if (wind >= 20) { score -= 60; reasons.push(`dangerous wind ${wind.toFixed(0)}m/s`); }
+    else if (wind >= 15) { score -= 45; reasons.push(`very strong wind ${wind.toFixed(0)}m/s`); }
+    else if (wind >= 12) { score -= 35; reasons.push(`strong wind ${wind.toFixed(0)}m/s`); }
+    else if (wind >= 8) { score -= 20; reasons.push(`brisk wind ${wind.toFixed(0)}m/s`); }
   }
 
   if (h.t2m !== null) {
-    if (h.t2m <= -15) { score -= 25; reasons.push(`very cold ${h.t2m.toFixed(0)}°C`); }
-    else if (h.t2m <= -5) { score -= 10; reasons.push(`cold ${h.t2m.toFixed(0)}°C`); }
+    if (h.t2m <= -15) { score -= 40; reasons.push(`very cold ${h.t2m.toFixed(0)}°C`); }
+    else if (h.t2m <= -10) { score -= 25; reasons.push(`cold ${h.t2m.toFixed(0)}°C`); }
+    else if (h.t2m <= -5) { score -= 15; reasons.push(`cold ${h.t2m.toFixed(0)}°C`); }
     else if (h.t2m >= 30) { score -= 15; reasons.push(`hot ${h.t2m.toFixed(0)}°C`); }
   }
 
@@ -89,11 +91,11 @@ export function findWindows(scored: ScoredHour[]): ClimbWindow[] {
   const MIN_HOURS = 4;
   const MIN_AVG_SCORE = 50;
 
-  // Group by local calendar day
+  // Group by UTC calendar day (API timestamps are UTC)
   const dayMap = new Map<string, { hours: ScoredHour[]; globalIndices: number[] }>();
   for (let i = 0; i < scored.length; i++) {
     const d = new Date(scored[i].time);
-    const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    const key = `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`;
     if (!dayMap.has(key)) dayMap.set(key, { hours: [], globalIndices: [] });
     const entry = dayMap.get(key)!;
     entry.hours.push(scored[i]);
@@ -103,10 +105,10 @@ export function findWindows(scored: ScoredHour[]): ClimbWindow[] {
   const windows: ClimbWindow[] = [];
 
   for (const { hours: dayHours } of dayMap.values()) {
-    // Collect the morning-through-early-afternoon hours (04:00-14:00)
+    // Collect the morning-through-early-afternoon hours (04:00-14:00 UTC)
     const run: ScoredHour[] = [];
     for (let si = 0; si < dayHours.length; si++) {
-      const h = new Date(dayHours[si].time).getHours();
+      const h = new Date(dayHours[si].time).getUTCHours();
       if (h >= WINDOW_START && h < WINDOW_END) {
         run.push(dayHours[si]);
       }

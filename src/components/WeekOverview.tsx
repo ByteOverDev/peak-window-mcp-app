@@ -102,7 +102,7 @@ export function WeekOverview({ hours, windows, selectedIdx, onSelect, cursorIdx,
                 <div className={s.md}>{md}</div>
               </div>
 
-              <div className={s.bars} onMouseLeave={() => onHover(null)}>
+              <div className={s.bars} role="img" aria-label={`Hourly scores for ${wdStr}: ${day.hours.length} hours, best ${Math.max(...day.hours.map(({hour: hh}) => hh.score))}/100`} onMouseLeave={() => onHover(null)}>
                 {day.hours.map(({ hour: h, flatIdx }) => (
                   <div
                     key={flatIdx}
@@ -113,7 +113,7 @@ export function WeekOverview({ hours, windows, selectedIdx, onSelect, cursorIdx,
                       opacity: cursorIdx == null ? 0.85 : (flatIdx === cursorIdx ? 1 : 0.45),
                     }}
                     onMouseEnter={(e) => onHover(flatIdx, e.clientX, e.clientY)}
-                    title={`${new Date(h.time).getHours()}:00 - ${h.score}/100`}
+                    title={`${new Date(h.time).getHours()}:00 - ${h.score}/100 (${h.rating})`}
                   />
                 ))}
               </div>

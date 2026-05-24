@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Cloud, Compass, Droplets, Mountain, Snowflake, Thermometer, Wind } from "lucide-react";
 import { ratingColor } from "../rating-color.ts";
 import type { CursorState, PeakWindowResult } from "../types.ts";
@@ -14,6 +15,8 @@ function cardinal(deg: number) {
 }
 
 export function FloatingTooltip({ data, cursor }: FloatingTooltipProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
   if (!cursor) return null;
   const h = data.hours[cursor.idx];
   if (!h) return null;
@@ -26,11 +29,16 @@ export function FloatingTooltip({ data, cursor }: FloatingTooltipProps) {
     else flag = "mixed";
   }
 
-  const left = Math.min(cursor.clientX + 16, window.innerWidth - 260);
-  const top = Math.max(cursor.clientY - 100, 10);
+  const tooltipW = 260;
+  const tooltipH = ref.current?.offsetHeight ?? 300;
+  const docEl = document.documentElement;
+  const viewW = docEl.clientWidth;
+  const viewH = docEl.clientHeight;
+  const left = Math.min(cursor.clientX + 16, viewW - tooltipW - 8);
+  const top = Math.max(10, Math.min(cursor.clientY - 100, viewH - tooltipH - 8));
 
   return (
-    <div className={s.tooltip} style={{ left, top }}>
+    <div ref={ref} className={s.tooltip} style={{ left, top }}>
       <div className={s.time}>
         <span className={s.when}>
           {new Date(h.time).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false })}
