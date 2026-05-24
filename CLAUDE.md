@@ -1,5 +1,53 @@
 # Weather MCP Project
 
+## Forecast Provider Architecture
+
+PeakWindow uses a multi-provider abstraction (`src/providers/`) to select the best forecast source for each location. Providers are tried in priority order; on API failure, the router falls through to the next.
+
+| Priority | Provider | Resolution | Coverage | Source |
+|---|---|---|---|---|
+| 1 | GeoSphere Austria | 2.5 km | Central Europe (5.5–22.1°E, 43–51.8°N) | Direct API (`dataset.api.hub.geosphere.at`) |
+| 2 | MeteoSwiss ICON-CH2 | 2 km | Alpine region (0.5–16.5°E, 43–49.9°N) | Open-Meteo (`models=meteoswiss_icon_ch2`) |
+| 3 | Météo-France AROME | 2.5 km | France & surrounds (-9–14°E, 38–55°N) | Open-Meteo (`models=meteofrance_arome_france`) |
+| 4 | Open-Meteo default | ~11 km | Global | Open-Meteo (best available model blend) |
+
+Key files:
+- `src/providers/types.ts` — `ForecastProvider` interface, `ForecastProviderResult`
+- `src/providers/geosphere.ts` — direct GeoSphere API (deaccumulates precip, derives model terrain from `sp`)
+- `src/providers/openmeteo.ts` — factory for Open-Meteo-based providers (MeteoSwiss, Météo-France, default)
+- `src/providers/index.ts` — router with ordered fallback
+
+### Lapse correction
+
+GeoSphere reports t2m at the NWP model's smoothed terrain, not at DEM elevation. The model terrain is derived from `sp` (surface pressure) via the hypsometric formula. Open-Meteo providers use the `elevation` field from the response (already downscaled to DEM). When a provider doesn't supply `freezing_level_height`, it's backfilled from the Open-Meteo default model.
+
+## Open-Meteo API (`api.open-meteo.com/v1`)
+
+Open-Meteo provides free, keyless, global weather forecasts. Used both as a provider (default global fallback) and as a wrapper for national models (MeteoSwiss, Météo-France).
+
+Base URL: `https://api.open-meteo.com/v1/forecast`
+
+### Parameter names (underscore-separated)
+
+`temperature_2m`, `precipitation`, `snowfall`, `cloud_cover`, `freezing_level_height`, `wind_speed_10m`, `wind_gusts_10m`, `wind_direction_10m`, `surface_pressure`
+
+### Unit conversions (Open-Meteo → HourData)
+
+| Open-Meteo | HourData field | Conversion |
+|---|---|---|
+| `temperature_2m` (°C) | `t2m` | direct |
+| `precipitation` (mm) | `rr` | direct (already hourly) |
+| `snowfall` (cm) | `snow` | direct (1 cm snow ≈ 1 mm water-equiv) |
+| `cloud_cover` (0–100%) | `tcc` | ÷ 100 → 0–1 fraction |
+| `freezing_level_height` (m) | `snowlmt` | direct |
+| `wind_speed_10m` (km/h) | `wsp` | ÷ 3.6 → m/s |
+| `wind_gusts_10m` (km/h) | `gust` | ÷ 3.6 → m/s |
+| `wind_direction_10m` (°) | `dd` | direct |
+
+### Model selection
+
+Use `&models=<model_id>` to select a specific model. Without it, Open-Meteo uses the best available blend. Time format: `"2026-05-24T14:00"` (no timezone suffix when `&timezone=UTC`; append `:00Z` for ISO 8601).
+
 ## GeoSphere Austria API (`dataset.api.hub.geosphere.at/v1`)
 
 GeoSphere Austria's open data API providing weather observations, forecasts, and climate data for Austria and surrounding regions. Base URL: `https://dataset.api.hub.geosphere.at/v1/`

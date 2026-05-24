@@ -1,13 +1,15 @@
 # PeakWindow MCP App
 
-An MCP App that analyzes upcoming weather at alpine peaks and trailheads across Austria, ranking the best windows for climbing and ascent. Powered by the GeoSphere Austria NWP forecast (AROME 2.5 km, hourly).
+An MCP App that analyzes upcoming weather at alpine peaks and trailheads worldwide, ranking the best windows for climbing and ascent. Uses the best available forecast model for each region: GeoSphere Austria AROME (2.5 km) for Central Europe, MeteoSwiss ICON-CH2 (2 km) for the Alpine region, Météo-France AROME (2.5 km) for France, and Open-Meteo globally (~11 km).
 
 ![PeakWindow UI](screenshot.png)
 
 ## What it does
 
-- Fetches hourly forecasts (temperature, precipitation, wind, gusts, cloud cover, snow line) from the GeoSphere Austria open-data API
-- Lapse-corrects temperatures to summit elevation using the standard environmental lapse rate (-6.5 °C/km) and Open-Meteo DEM
+- Fetches hourly forecasts (temperature, precipitation, wind, gusts, cloud cover, snow line) from the best available provider for the requested coordinates
+- Automatically selects the highest-resolution model: GeoSphere (2.5 km, Central Europe), MeteoSwiss (2 km, Alpine region), Météo-France (2.5 km, France), or Open-Meteo (~11 km, global)
+- Falls through to the next provider on API failure for resilience
+- Lapse-corrects temperatures to summit elevation using model terrain derived from surface pressure (-6.5 °C/km)
 - Scores each hour against alpine climbing thresholds and identifies contiguous good-weather windows
 - Serves an interactive UI (React, uPlot charts) as an MCP App resource with horizon tape, mountain profile, and Ventusky-style chart panels
 
@@ -63,5 +65,9 @@ npm run dev
 
 ## Data sources
 
-- [GeoSphere Austria](https://data.hub.geosphere.at/) — NWP forecast (`nwp-v1-1h-2500m`)
-- [Open-Meteo Elevation API](https://open-meteo.com/) — grid-cell DEM for lapse correction
+| Provider | Resolution | Coverage | Via |
+|---|---|---|---|
+| [GeoSphere Austria](https://data.hub.geosphere.at/) | 2.5 km | Central Europe (5.5–22.1°E, 43–51.8°N) | Direct API |
+| [MeteoSwiss ICON-CH2](https://open-meteo.com/en/docs/meteoswiss-api) | 2 km | Alpine region (0.5–16.5°E, 43–49.9°N) | Open-Meteo |
+| [Météo-France AROME](https://open-meteo.com/en/docs/meteofrance-api) | 2.5 km | France & surrounds (-9–14°E, 38–55°N) | Open-Meteo |
+| [Open-Meteo](https://open-meteo.com/) | ~11 km | Global | Direct API |
