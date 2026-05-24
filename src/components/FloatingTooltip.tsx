@@ -78,9 +78,9 @@ export function FloatingTooltip({ data, cursor }: FloatingTooltipProps) {
         <span className={s.k}><Cloud size={11} /> Cloud</span>
         <span className={s.v}>{h.tcc != null ? Math.round(h.tcc * 100) : "—"}%</span>
       </div>
-      {summit != null && h.snowlmt != null && (
+      {summit != null && h.snowlmt != null && h.precipType !== "none" && (
         <div className={s.flagRow}>
-          <span>Summit is in</span>
+          <span>Precip at summit</span>
           <span className={`${s.pill} ${s[flag]}`}>{flag}</span>
           {h.tcc != null && h.tcc > 0.8 && Math.abs((h.snowlmt ?? 0) - summit) < 250 && (
             <span className={`${s.pill} ${s.pillCloud}`}>in cloud</span>

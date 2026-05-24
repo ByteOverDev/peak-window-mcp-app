@@ -28,7 +28,9 @@ export function MountainProfile({ data, cursorIdx }: MountainProfileProps) {
   const ff = hour?.wsp ?? null;
   const precipType = hour?.precipType ?? "none";
 
-  const yMax = Math.max(summit + 800, Math.max(...snowSeries.filter((v): v is number => v != null)) + 400);
+  const snowLineVisible = snowLine <= summit + 500;
+  const relevantSnow = snowLineVisible ? Math.max(...snowSeries.filter((v): v is number => v != null && v <= summit + 500)) + 400 : 0;
+  const yMax = Math.max(summit + 800, relevantSnow);
   const yMin = 0;
   const W = 280, H = 224;
   const PAD_X = 12, PAD_TOP = 26, PAD_BOTTOM = 22;
@@ -90,23 +92,25 @@ export function MountainProfile({ data, cursorIdx }: MountainProfileProps) {
           <rect x="0" y="0" width={W} height={H} fill="url(#pw-sky)" />
           <path d={ridgePath} fill="url(#pw-rock)" stroke="var(--border-strong)" strokeWidth="0.6" />
 
-          <g clipPath="url(#pw-ridgeClip)">
-            <rect x="0" y={0} width={W} height={Math.max(0, snowY)} fill="url(#pw-snow)" style={{ transition: "height 360ms" }} />
-            <line x1="0" y1={snowY + 6} x2={W} y2={snowY + 6} stroke="rgba(255,255,255,0.07)" strokeWidth="0.6" />
-            <line x1="0" y1={snowY + 14} x2={W} y2={snowY + 14} stroke="rgba(255,255,255,0.05)" strokeWidth="0.6" />
-          </g>
+          {snowLineVisible && (<>
+            <g clipPath="url(#pw-ridgeClip)">
+              <rect x="0" y={0} width={W} height={Math.max(0, snowY)} fill="url(#pw-snow)" style={{ transition: "height 360ms" }} />
+              <line x1="0" y1={snowY + 6} x2={W} y2={snowY + 6} stroke="rgba(255,255,255,0.07)" strokeWidth="0.6" />
+              <line x1="0" y1={snowY + 14} x2={W} y2={snowY + 14} stroke="rgba(255,255,255,0.05)" strokeWidth="0.6" />
+            </g>
 
-          <line x1="0" y1={snowY} x2={W} y2={snowY}
-            stroke="var(--c-snowlmt)" strokeWidth="1" strokeDasharray="3,3" opacity="0.85"
-            style={{ transition: "y1 360ms, y2 360ms" }} />
-          <rect x={W - 70} y={snowY - 14} width="64" height="14" rx="3"
-            fill="var(--surface)" stroke="var(--border-strong)" strokeWidth="0.5"
-            style={{ transition: "y 360ms" }} />
-          <text x={W - 38} y={snowY - 4} textAnchor="middle"
-            fontSize="9" fontWeight="600" letterSpacing="0.06em"
-            fill="var(--c-snowlmt)" style={{ transition: "y 360ms" }}>
-            SNOW {snowLine.toLocaleString()}m
-          </text>
+            <line x1="0" y1={snowY} x2={W} y2={snowY}
+              stroke="var(--c-snowlmt)" strokeWidth="1" strokeDasharray="3,3" opacity="0.85"
+              style={{ transition: "y1 360ms, y2 360ms" }} />
+            <rect x={W - 70} y={snowY - 14} width="64" height="14" rx="3"
+              fill="var(--surface)" stroke="var(--border-strong)" strokeWidth="0.5"
+              style={{ transition: "y 360ms" }} />
+            <text x={W - 38} y={snowY - 4} textAnchor="middle"
+              fontSize="9" fontWeight="600" letterSpacing="0.06em"
+              fill="var(--c-snowlmt)" style={{ transition: "y 360ms" }}>
+              SNOW {snowLine.toLocaleString()}m
+            </text>
+          </>)}
 
           {/* Freezing level line */}
           {fzLine != null && fzLine > 0 && fzLine < yMax && (() => {
@@ -172,7 +176,9 @@ export function MountainProfile({ data, cursorIdx }: MountainProfileProps) {
 
       <div className={s.legend}>
         <div className={s.legRow}><span className={s.swatch} style={{ background: "var(--gold)" }} /> Summit &middot; {summit.toLocaleString()} m</div>
-        <div className={s.legRow}><span className={s.swatch} style={{ background: "var(--c-snowlmt)" }} /> Snow line &middot; {snowLine.toLocaleString()} m</div>
+        {snowLineVisible && (
+          <div className={s.legRow}><span className={s.swatch} style={{ background: "var(--c-snowlmt)" }} /> Snow line &middot; {snowLine.toLocaleString()} m</div>
+        )}
         <div className={s.legRow}><span className={s.swatch} style={{ background: "var(--text-faint)" }} /> Grid centroid &middot; {grid.toLocaleString()} m</div>
         {fzLine != null && (
           <div className={s.legRow}><span className={s.swatch} style={{ background: "var(--c-feels)" }} /> 0°C isotherm &middot; {fzLine.toLocaleString()} m</div>
@@ -188,19 +194,21 @@ export function MountainProfile({ data, cursorIdx }: MountainProfileProps) {
                 hour: "2-digit", minute: "2-digit", hour12: false,
               })}
         </div>
-        <div className={s.cursorRow}>
-          <span>Summit is in</span>
-          <span className={`${s.flag} ${summitInSnow ? s.flagSnow : (Math.abs(snowLine - summit) < 200 ? s.flagMixed : s.flagRain)}`}>
-            {summitInSnow ? "snow" : (Math.abs(snowLine - summit) < 200 ? "mixed" : "rain zone")}
-          </span>
-        </div>
+        {precipType !== "none" && (
+          <div className={s.cursorRow}>
+            <span>Precip at summit</span>
+            <span className={`${s.flag} ${summitInSnow ? s.flagSnow : (Math.abs(snowLine - summit) < 200 ? s.flagMixed : s.flagRain)}`}>
+              {summitInSnow ? "snow" : (Math.abs(snowLine - summit) < 200 ? "mixed" : "rain")}
+            </span>
+          </div>
+        )}
         {feelsLike != null && (
           <div className={s.cursorRow}>
             <span>Feels-like</span>
             <span style={{ color: "var(--c-feels)" }}>
-              {feelsLike}°C
+              {feelsLike.toFixed(1)}°C
               {t2m != null && Math.abs(feelsLike - t2m) > 0.5 && (
-                <span className={s.actual}> ({t2m}° actual)</span>
+                <span className={s.actual}> ({t2m.toFixed(1)}° actual)</span>
               )}
             </span>
           </div>
