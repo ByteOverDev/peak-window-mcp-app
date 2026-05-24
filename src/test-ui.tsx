@@ -13,7 +13,7 @@ import { computeSunMarkers } from "./sun.ts";
 import { TopBar } from "./components/TopBar.tsx";
 import { HeroWindow } from "./components/HeroWindow.tsx";
 import { MountainProfile } from "./components/MountainProfile.tsx";
-import { ChartPanels, type VentuskyPayload } from "./ventusky.tsx";
+import { ChartPanels, snowRelevant, type VentuskyPayload } from "./ventusky.tsx";
 import { StatsRow } from "./components/StatsRow.tsx";
 import { WeekOverview } from "./components/WeekOverview.tsx";
 import { FloatingTooltip } from "./components/FloatingTooltip.tsx";
@@ -159,7 +159,8 @@ function TestApp() {
     score: data.hours.map(h => h.score),
   }), [data]);
 
-  const snowlmtVals = data.series.snowlmt.filter((v): v is number => v != null);
+  const showSnow = snowRelevant(chartPayload);
+  const snowlmtVals = showSnow ? data.series.snowlmt.filter((v): v is number => v != null) : [];
   const snowlmtMin = snowlmtVals.length ? Math.min(...snowlmtVals) : null;
   const snowlmtMax = snowlmtVals.length ? Math.max(...snowlmtVals) : null;
 

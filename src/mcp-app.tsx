@@ -10,7 +10,7 @@ import { computeSunMarkers } from "./sun.ts";
 import { TopBar } from "./components/TopBar.tsx";
 import { HeroWindow } from "./components/HeroWindow.tsx";
 import { MountainProfile } from "./components/MountainProfile.tsx";
-import { ChartPanels, type VentuskyPayload } from "./ventusky.tsx";
+import { ChartPanels, snowRelevant, type VentuskyPayload } from "./ventusky.tsx";
 import { StatsRow } from "./components/StatsRow.tsx";
 import { WeekOverview } from "./components/WeekOverview.tsx";
 import { FloatingTooltip } from "./components/FloatingTooltip.tsx";
@@ -102,10 +102,12 @@ function PeakWindowApp() {
     };
   }, [data]);
 
+  const showSnow = chartPayload ? snowRelevant(chartPayload) : false;
   const [snowlmtMin, snowlmtMax] = useMemo(() => {
-    const vals = data ? data.series.snowlmt.filter((v): v is number => v != null) : [];
+    if (!showSnow || !data) return [null, null];
+    const vals = data.series.snowlmt.filter((v): v is number => v != null);
     return vals.length ? [Math.min(...vals), Math.max(...vals)] : [null, null];
-  }, [data]);
+  }, [data, showSnow]);
 
   const windows = data?.windows ?? [];
   const selectedWindow = windows[selectedIdx] ?? windows[0];

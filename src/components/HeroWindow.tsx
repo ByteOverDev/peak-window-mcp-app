@@ -249,10 +249,11 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
   const flMin = flVals.length ? Math.min(...flVals) : null;
   const flMax = flVals.length ? Math.max(...flVals) : null;
 
-  // Snow line
+  // Snow line — only relevant when it's near the summit
   const slVals = slice.map(h => h.snowlmt).filter((v): v is number => v != null);
   const slMin = slVals.length ? Math.min(...slVals) : 0;
   const slMax = slVals.length ? Math.max(...slVals) : 0;
+  const snowRelevant = !summit || !slVals.length || slMin < summit + 500;
 
   // Wind direction
   const ddVals = slice.map(h => h.dd).filter((v): v is number => v != null);
@@ -334,6 +335,7 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
               </div>
             )}
           </div>
+          {snowRelevant && (
           <div className={s.stat}>
             <div className={s.statLabel}><Snowflake size={11} /> Snow line</div>
             <div className={s.statValue} style={{ color: "var(--ice)" }}>
@@ -346,6 +348,7 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
               </div>
             )}
           </div>
+          )}
         </div>
         <ScoreDonut score={Math.round(w.avgScore)} rating={w.rating} />
       </div>

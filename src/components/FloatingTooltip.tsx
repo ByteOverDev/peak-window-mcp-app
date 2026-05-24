@@ -22,6 +22,8 @@ export function FloatingTooltip({ data, cursor }: FloatingTooltipProps) {
   if (!h) return null;
 
   const summit = data.summitElevationM;
+  const slVals = data.series.snowlmt.filter((v): v is number => v != null);
+  const showSnow = !summit || !slVals.length || Math.min(...slVals) < summit + 500;
   let flag: "snow" | "rain" | "mixed" = "rain";
   if (summit != null && h.snowlmt != null) {
     if (h.snowlmt + 100 < summit) flag = "snow";
@@ -68,6 +70,7 @@ export function FloatingTooltip({ data, cursor }: FloatingTooltipProps) {
             <span style={{ color: "var(--text-muted)" }}> &middot; {h.precipType}</span>
           )}
         </span>
+        {showSnow && (<>
         <span className={s.k}><Snowflake size={11} /> Snow</span>
         <span className={s.v} style={{ color: "var(--c-snow)" }}>{h.snow?.toFixed(1) ?? "—"} mm/h</span>
         <span className={s.k}><Mountain size={11} /> Snow line &middot; 0&deg;C</span>
@@ -75,10 +78,11 @@ export function FloatingTooltip({ data, cursor }: FloatingTooltipProps) {
           {h.snowlmt?.toLocaleString() ?? "—"}
           {h.freezingLevel != null ? ` · ${h.freezingLevel.toLocaleString()}` : ""} m
         </span>
+        </>)}
         <span className={s.k}><Cloud size={11} /> Cloud</span>
         <span className={s.v}>{h.tcc != null ? Math.round(h.tcc * 100) : "—"}%</span>
       </div>
-      {summit != null && h.snowlmt != null && h.precipType !== "none" && (
+      {showSnow && summit != null && h.snowlmt != null && h.precipType !== "none" && (
         <div className={s.flagRow}>
           <span>Precip at summit</span>
           <span className={`${s.pill} ${s[flag]}`}>{flag}</span>

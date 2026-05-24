@@ -35,6 +35,17 @@ export interface VentuskyPayload {
   score?: (number | null)[];
 }
 
+const SNOW_RELEVANCE_MARGIN = 500;
+
+export function snowRelevant(p: VentuskyPayload): boolean {
+  if (p.series.snow?.some((v) => v != null && v > 0)) return true;
+  const snowlmtVals = p.series.snowlmt?.filter((v): v is number => v != null);
+  if (!snowlmtVals?.length) return false;
+  const summit = p.summitElevationM;
+  if (summit == null) return true;
+  return Math.min(...snowlmtVals) < summit + SNOW_RELEVANCE_MARGIN;
+}
+
 // Resolve CSS custom properties to canvas-usable color values.
 // `light-dark()` is understood by CSS but NOT by Canvas 2D, so we
 // resolve via a hidden probe element once per theme, then cache.
@@ -425,8 +436,7 @@ export function ChartPanels({ payload, showNight, showCloud, showFeelsLike = tru
   onCursorRef.current = onCursor;
 
   useEffect(() => {
-    const hasSnow = !!payload.series.snow?.some((v) => v != null && v > 0)
-                 || !!payload.series.snowlmt?.some((v) => v != null);
+    const hasSnow = snowRelevant(payload);
 
     const containers = [
       refs.temp.current,
@@ -506,8 +516,7 @@ export function ChartPanels({ payload, showNight, showCloud, showFeelsLike = tru
     }
   }, [externalCursorIdx]);
 
-  const hasSnow = !!payload.series.snow?.some((v) => v != null && v > 0)
-               || !!payload.series.snowlmt?.some((v) => v != null);
+  const hasSnow = snowRelevant(payload);
 
   return (
     <div className={styles.panels} ref={containerRef}>

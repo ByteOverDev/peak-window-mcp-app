@@ -194,7 +194,7 @@ export function MountainProfile({ data, cursorIdx }: MountainProfileProps) {
                 hour: "2-digit", minute: "2-digit", hour12: false,
               })}
         </div>
-        {precipType !== "none" && (
+        {snowLineVisible && precipType !== "none" && (
           <div className={s.cursorRow}>
             <span>Precip at summit</span>
             <span className={`${s.flag} ${summitInSnow ? s.flagSnow : (Math.abs(snowLine - summit) < 200 ? s.flagMixed : s.flagRain)}`}>
@@ -221,7 +221,7 @@ export function MountainProfile({ data, cursorIdx }: MountainProfileProps) {
             </span>
           </div>
         )}
-        {precipType !== "none" && (
+        {snowLineVisible && precipType !== "none" && (
           <div className={s.cursorRow}>
             <span>Precip type</span>
             <span className={`${s.pill} ${s[`pill${precipType.charAt(0).toUpperCase()}${precipType.slice(1)}`]}`}>
