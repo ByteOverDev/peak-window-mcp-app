@@ -28,8 +28,8 @@ export function MountainProfile({ data, cursorIdx }: MountainProfileProps) {
   const ff = hour?.wsp ?? null;
   const precipType = hour?.precipType ?? "none";
 
-  const snowLineVisible = snowLine <= summit + 500;
-  const relevantSnow = snowLineVisible ? Math.max(...snowSeries.filter((v): v is number => v != null && v <= summit + 500)) + 400 : 0;
+  const snowLineVisible = snowLine <= summit;
+  const relevantSnow = snowLineVisible ? Math.max(...snowSeries.filter((v): v is number => v != null && v <= summit)) + 400 : 0;
   const yMax = Math.max(summit + 800, relevantSnow);
   const yMin = 0;
   const W = 280, H = 224;

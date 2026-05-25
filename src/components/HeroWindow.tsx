@@ -253,7 +253,7 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
   const slVals = slice.map(h => h.snowlmt).filter((v): v is number => v != null);
   const slMin = slVals.length ? Math.min(...slVals) : 0;
   const slMax = slVals.length ? Math.max(...slVals) : 0;
-  const snowRelevant = !summit || !slVals.length || slMin < summit + 500;
+  const snowRelevant = !summit || !slVals.length || slMin <= summit;
 
   // Wind direction
   const ddVals = slice.map(h => h.dd).filter((v): v is number => v != null);

@@ -35,15 +35,13 @@ export interface VentuskyPayload {
   score?: (number | null)[];
 }
 
-const SNOW_RELEVANCE_MARGIN = 500;
-
 export function snowRelevant(p: VentuskyPayload): boolean {
   if (p.series.snow?.some((v) => v != null && v > 0)) return true;
   const snowlmtVals = p.series.snowlmt?.filter((v): v is number => v != null);
   if (!snowlmtVals?.length) return false;
   const summit = p.summitElevationM;
   if (summit == null) return true;
-  return Math.min(...snowlmtVals) < summit + SNOW_RELEVANCE_MARGIN;
+  return Math.min(...snowlmtVals) <= summit;
 }
 
 // Resolve CSS custom properties to canvas-usable color values.

@@ -23,7 +23,7 @@ export function FloatingTooltip({ data, cursor }: FloatingTooltipProps) {
 
   const summit = data.summitElevationM;
   const slVals = data.series.snowlmt.filter((v): v is number => v != null);
-  const showSnow = !summit || !slVals.length || Math.min(...slVals) < summit + 500;
+  const showSnow = !summit || !slVals.length || Math.min(...slVals) <= summit;
   let flag: "snow" | "rain" | "mixed" = "rain";
   if (summit != null && h.snowlmt != null) {
     if (h.snowlmt + 100 < summit) flag = "snow";
