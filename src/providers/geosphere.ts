@@ -31,7 +31,7 @@ function windDirection(u: number | null | undefined, v: number | null | undefine
 // Derive model terrain elevation from surface pressure (hypsometric formula)
 function modelTerrainFromPressure(spPa: number | null): number | null {
   if (spPa == null) return null;
-  return 44330 * (1 - Math.pow(spPa / 101325, 0.1903));
+  return Math.round(44330 * (1 - Math.pow(spPa / 101325, 0.1903)));
 }
 
 function deaccumulate(series: (number | null)[]): (number | null)[] {

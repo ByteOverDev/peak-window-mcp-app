@@ -223,7 +223,7 @@ function TestApp() {
               <span>
                 Lapse-corrected <strong>{data.lapseDeltaC.toFixed(1)}&deg;C</strong>
                 <span className={vk.lapseSep}> from grid </span>
-                <strong>{data.gridElevationM} m</strong>
+                <strong>{Math.round(data.gridElevationM!)} m</strong>
                 <span className={vk.lapseSep}> &rarr; summit </span>
                 <strong>{data.summitElevationM} m</strong>
               </span>
