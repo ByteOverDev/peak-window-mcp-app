@@ -1,6 +1,7 @@
 const colors: Record<string, string> = {
   ideal: "var(--score-ideal)",
   good: "var(--score-good)",
+  fair: "var(--score-fair)",
   marginal: "var(--score-marginal)",
   avoid: "var(--score-avoid)",
 };

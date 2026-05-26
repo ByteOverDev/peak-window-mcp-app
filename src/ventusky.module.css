@@ -43,7 +43,7 @@
   border: 1px solid var(--border) !important;
   color: var(--text-muted) !important;
   font-size: 12px;
-  transition: all 140ms;
+  transition: color 140ms, border-color 140ms, background 140ms;
   font-weight: 500;
 }
 .toggle:hover { color: var(--text) !important; border-color: var(--border-strong) !important; }
@@ -114,6 +114,14 @@
   color: var(--text-faint);
   border-top: 1px solid var(--hairline);
   font-variant-numeric: tabular-nums;
+}
+
+.disclaimer {
+  padding: 10px 20px 14px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  line-height: 1.5;
+  font-style: italic;
 }
 
 /* uPlot overrides */

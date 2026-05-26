@@ -57,7 +57,7 @@ export function WeekOverview({ hours, windows, selectedIdx, onSelect, cursorIdx,
       const ws = new Date(w.start).getTime();
       const we = new Date(w.end).getTime();
       if (we >= dStart && ws < dEnd) {
-        if (!best || w.avgScore > best.avgScore) {
+        if (!best || w.score > best.score) {
           best = w;
           bestIdx = wi;
         }
@@ -81,6 +81,7 @@ export function WeekOverview({ hours, windows, selectedIdx, onSelect, cursorIdx,
           <div className={s.legend}>
             <span><span className={s.dot} style={{ background: "var(--score-ideal)" }} />ideal</span>
             <span><span className={s.dot} style={{ background: "var(--score-good)" }} />good</span>
+            <span><span className={s.dot} style={{ background: "var(--score-fair)" }} />fair</span>
             <span><span className={s.dot} style={{ background: "var(--score-marginal)" }} />marginal</span>
             <span><span className={s.dot} style={{ background: "var(--score-avoid)" }} />avoid</span>
           </div>
@@ -124,7 +125,7 @@ export function WeekOverview({ hours, windows, selectedIdx, onSelect, cursorIdx,
                     <div className={s.time}>
                       {fmtHM(new Date(best.start))}<span className={s.arr}> &#8594; </span>{fmtHM(new Date(best.end))}
                     </div>
-                    <div className={s.meta}>{best.hours}h &middot; {Math.round(best.avgScore)}/100</div>
+                    <div className={s.meta}>{best.hours}h &middot; {Math.round(best.score)}/100</div>
                   </>
                 ) : (
                   <div className={s.empty}>&mdash; no climb window</div>

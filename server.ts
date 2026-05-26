@@ -83,7 +83,7 @@ export function createServer(): McpServer {
         }
 
         const scored = hours.map(scoreHour);
-        const windows = findWindows(scored);
+        const windows = findWindows(scored, summitElevationM);
         const top = windows.slice(0, 3);
 
         const snowMm = hours.map((h) => h.snow);
@@ -128,7 +128,7 @@ export function createServer(): McpServer {
 
         const summary = top.length
           ? `Top window for ${peakName ?? `(${lat.toFixed(3)},${lon.toFixed(3)})`}: ` +
-            top.map(w => `${w.start.slice(5, 16)} → ${w.end.slice(11, 16)} (${w.rating}, ${w.avgScore}/100)`).join(" | ")
+            top.map(w => `${w.start.slice(5, 16)} → ${w.end.slice(11, 16)} (${w.rating}, ${w.score}/100)`).join(" | ")
           : `No suitable climbing window found in the forecast horizon for ${peakName ?? `(${lat.toFixed(3)},${lon.toFixed(3)})`}.`;
 
         return {

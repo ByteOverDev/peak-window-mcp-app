@@ -57,8 +57,9 @@
 
   /* Score */
   --score-ideal:    light-dark(#2f8a4a, #4ade80);
-  --score-good:     light-dark(#7a9928, #a3e635);
-  --score-marginal: light-dark(#c4801e, #fbbf24);
+  --score-good:     light-dark(#5a9a2a, #a3e635);
+  --score-fair:     light-dark(#b09020, #e0c040);
+  --score-marginal: light-dark(#c85a1e, #f59e0b);
   --score-avoid:    light-dark(#b8362e, #f87171);
 
   --shadow-1: light-dark(0 1px 3px rgba(28,36,56,0.04), 0 1px 0 rgba(255,245,220,0.02) inset);
@@ -102,3 +103,11 @@ body::before {
 
 button { font: inherit; cursor: pointer; color: inherit; border: 0; background: none; }
 input { font: inherit; color: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

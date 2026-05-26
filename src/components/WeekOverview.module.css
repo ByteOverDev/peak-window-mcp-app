@@ -199,7 +199,8 @@
 }
 .ideal    { background: rgba(74,222,128,0.16); color: var(--score-ideal); }
 .good     { background: rgba(163,230,53,0.15); color: var(--score-good); }
-.marginal { background: rgba(251,191,36,0.16); color: var(--score-marginal); }
+.fair     { background: rgba(224,192,64,0.15); color: var(--score-fair); }
+.marginal { background: rgba(245,158,11,0.16); color: var(--score-marginal); }
 .avoid    { background: rgba(248,113,113,0.16); color: var(--score-avoid); }
 
 @media (max-width: 720px) {

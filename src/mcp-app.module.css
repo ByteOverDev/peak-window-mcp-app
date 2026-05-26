@@ -54,6 +54,9 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+@media (prefers-reduced-motion: reduce) {
+  .skelBlock::after { animation: none; }
+}
 .skelHero { height: 340px; }
 .skelOverview { height: 200px; }
 .skelChart { height: 420px; }

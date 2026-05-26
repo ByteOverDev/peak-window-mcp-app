@@ -50,7 +50,7 @@ function McpProvider({ children }: { children: React.ReactNode }) {
   });
 
   if (error) return <div className={styles.error}>ERROR: {error.message}</div>;
-  if (!isConnected) return <div className={styles.loading}>Connecting...</div>;
+  if (!isConnected) return <div className={styles.loading}>Connecting…</div>;
 
   return (
     <McpContext value={{ data, busy }}>
@@ -220,6 +220,9 @@ function PeakWindowApp() {
 
             <div className={vk.source}>
               Source: {data.source} &middot; fetched {new Date(data.fetchedAt).toLocaleString()}
+            </div>
+            <div className={vk.disclaimer}>
+              Scores are automated estimates based on NWP model output, not a substitute for local knowledge, current conditions, or alpine experience. Always check official forecasts and assess conditions on the ground.
             </div>
           </div>
         </>

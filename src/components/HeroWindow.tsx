@@ -350,7 +350,7 @@ export function HeroWindow({ window: w, hours, sunMarkers, totalHours, selectedI
           </div>
           )}
         </div>
-        <ScoreDonut score={Math.round(w.avgScore)} rating={w.rating} />
+        <ScoreDonut score={Math.round(w.score)} rating={w.rating} />
       </div>
 
       {totalWindows > 1 && (

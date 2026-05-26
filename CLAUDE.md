@@ -21,6 +21,57 @@ Key files:
 
 GeoSphere reports t2m at the NWP model's smoothed terrain, not at DEM elevation. The model terrain is derived from `sp` (surface pressure) via the hypsometric formula. Open-Meteo providers use the `elevation` field from the response (already downscaled to DEM). When a provider doesn't supply `freezing_level_height`, it's backfilled from the Open-Meteo default model.
 
+## Scoring System (`src/scoring.ts`)
+
+Two-level scoring for alpine ascent suitability: per-hour and per-window.
+
+### Per-hour scoring (`scoreHour`)
+
+Starts at 100, subtracts penalties using continuous interpolation (`lerp`) within bands. Inputs: gust (or wind speed), precip rate, feels-like temp (or t2m), snow rate, cloud cover.
+
+| Factor | Bands (value → penalty) |
+|---|---|
+| Wind (gust m/s) | 8–12 → 12–30, 12–15 → 30–45, 15–20 → 45–65, ≥20 → 65 |
+| Precip (mm/h) | 0.2–0.5 → 8–20, 0.5–1.0 → 20–40, 1.0–2.0 → 40–65, ≥2.0 → 65 |
+| Cold (feels-like °C) | -5 to -10 → 12–25, -10 to -15 → 25–40, ≤-15 → 40 |
+| Heat (°C) | ≥30 → 15 |
+| Snow (mm/h) | 0.3–1.0 → 15–30, ≥1.0 → 30 |
+| Overcast | ≥90% cloud + dry → 5 |
+
+### Window-level scoring (`scoreWindow`)
+
+Scores the climb window based on **worst-case metrics** across its hours, not the average of per-hour scores. This prevents dangerous spikes (e.g., one hour of 19 m/s gusts) from being diluted by calm hours.
+
+**Hard veto** (caps score at 30 = "avoid"):
+- Any hour with gust ≥ 20 m/s
+- Any hour with precip ≥ 2.0 mm/h
+
+**Scaled penalties** (continuous interpolation):
+
+| Factor | Input | Bands → Penalty |
+|---|---|---|
+| Wind | max gust | 8–12 → 10–25, 12–15 → 25–40, 15–20 → 40–55 |
+| Precip rate | max mm/h | 0.2–0.5 → 5–15, 0.5–1.0 → 15–35, 1.0–2.0 → 35–55 |
+| Precip total | sum mm | 2–5 → 8–20, ≥5 → 20 (stacks with rate) |
+| Cold | min feels-like | -5 to -10 → 10–20, -10 to -15 → 20–35, ≤-15 → 35 |
+| Snow rate | max mm/h | 0.3–1.0 → 15–30, ≥1.0 → 30 |
+| Cloud | avg cover | 0.75–0.9 → 4, ≥0.9 → 8 |
+| Freezing level | fraction of hours summit above 0°C line | >50% → 10–20 |
+
+### Rating tiers (5 levels)
+
+| Rating | Score range | Meaning |
+|---|---|---|
+| ideal | ≥ 80 | Excellent conditions, go with confidence |
+| good | ≥ 65 | Solid conditions, normal precautions |
+| fair | ≥ 45 | Challenging but doable for experienced climbers |
+| marginal | ≥ 30 | Demanding — experienced + properly equipped only |
+| avoid | < 30 | Dangerous, don't go |
+
+### Window finding (`findWindows`)
+
+Groups scored hours by UTC day. For each day, extracts hours 04:00–14:00 UTC, trims trailing low-score hours, calls `scoreWindow()` on the slice. Accepts optional `summitElevation` for freezing-level penalty. Minimum window score: 30. Returns windows sorted by score descending.
+
 ## Open-Meteo API (`api.open-meteo.com/v1`)
 
 Open-Meteo provides free, keyless, global weather forecasts. Used both as a provider (default global fallback) and as a wrapper for national models (MeteoSwiss, Météo-France).

@@ -244,17 +244,14 @@ function summitFillHook(summitM: number): (u: uPlot) => void {
   };
 }
 
+const fmtDate = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "numeric", day: "numeric" });
+const fmtHour = new Intl.DateTimeFormat(undefined, { hour: "numeric", hour12: true });
+
 function fmtTimeAxis(_u: uPlot, splits: number[]) {
   return splits.map((t) => {
     const d = new Date(t * 1000);
-    const h = d.getHours();
-    const min = d.getMinutes();
-    if (h === 0 && min === 0) {
-      const wd = d.toLocaleDateString(undefined, { weekday: "short" });
-      return `${wd} ${d.getMonth() + 1}/${d.getDate()}`;
-    }
-    const hh = h % 12 === 0 ? 12 : h % 12;
-    return `${hh}${h < 12 ? "a" : "p"}`;
+    if (d.getHours() === 0 && d.getMinutes() === 0) return fmtDate.format(d);
+    return fmtHour.format(d).replace(/\s/g, "").toLowerCase();
   });
 }
 
