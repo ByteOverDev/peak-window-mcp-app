@@ -38,7 +38,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "peak-window": {
       "command": "npx",
-      "args": ["tsx", "/path/to/peak-window-mcp-app/main.ts", "--stdio"]
+      "args": ["-y", "peak-window", "--stdio"]
     }
   }
 }
@@ -46,19 +46,20 @@ Add to your `claude_desktop_config.json`:
 
 Then ask Claude something like: *"What's the best weather window to climb Großglockner this week?"*
 
-### Manual / development
+### HTTP server
 
 ```bash
-npm install
-npm run build
-npm run serve          # HTTP + SSE transport
-npm run serve:stdio    # stdio transport
+npx peak-window        # starts on http://localhost:3001/mcp
 ```
 
-For development with hot reload:
+### Development
 
 ```bash
-npm run dev
+git clone https://github.com/ByteOverDev/peak-window-mcp-app.git
+cd peak-window-mcp-app
+npm install
+npm run dev            # hot reload (UI + server)
+npm run serve:stdio    # stdio transport
 ```
 
 ## MCP tool

@@ -1,8 +1,15 @@
 {
   "name": "peak-window",
-  "version": "1.0.0",
-  "description": "PeakWindow MCP App - climb/ascent weather windows from GeoSphere Austria",
-  "main": "index.js",
+  "version": "1.0.1",
+  "description": "MCP server that ranks climbing/ascent weather windows using multiple high-resolution models (GeoSphere AROME 2.5km, MeteoSwiss ICON 2km, Météo-France AROME 2.5km, Open-Meteo global)",
+  "main": "dist/index.js",
+  "bin": {
+    "peak-window": "dist/index.js"
+  },
+  "files": [
+    "dist/index.js",
+    "dist/mcp-app.html"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm run build:ui && npm run build:server",
@@ -10,12 +17,28 @@
     "serve:stdio": "tsx main.ts --stdio",
     "dev": "cross-env NODE_ENV=development concurrently 'cross-env INPUT=mcp-app.html vite build --watch' 'tsx --watch main.ts'",
     "start": "npm run build && npm run serve",
+    "prepublishOnly": "npm run build",
     "build:ui": "cross-env INPUT=mcp-app.html vite build",
     "build:server": "esbuild main.ts --bundle --platform=node --format=esm --outfile=dist/index.js --packages=external --banner:js='#!/usr/bin/env node'"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "mcp",
+    "weather",
+    "hiking",
+    "alpine",
+    "forecast",
+    "geosphere",
+    "meteoswiss",
+    "meteofrance",
+    "open-meteo",
+    "climbing"
+  ],
+  "author": "Mykola Skrypets",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ByteOverDev/peak-window-mcp-app.git"
+  },
   "type": "module",
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.7.2",
