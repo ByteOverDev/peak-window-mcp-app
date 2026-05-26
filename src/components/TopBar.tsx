@@ -14,7 +14,7 @@ export function TopBar({ data, windowCount }: TopBarProps) {
         <div className={s.mark}><MountainSnow size={22} /></div>
         <div>
           <div className={s.name}>PeakWindow</div>
-          <div className={s.tag}>Find your moment on Austria's high places.</div>
+          <div className={s.tag}>Find your moment on the mountain.</div>
         </div>
       </div>
       {data && (
