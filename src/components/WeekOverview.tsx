@@ -74,7 +74,7 @@ export function WeekOverview({ hours, windows, selectedIdx, onSelect, cursorIdx,
       <div className={s.rows}>
         <div className={s.head}>
           <div className={s.headLeft}>
-            <h3 className={s.title}>7-day overview</h3>
+            <h3 className={s.title}>{days.length}-day overview</h3>
             <span className={s.meta}>best window per day</span>
             <span className={s.meta}>hover bars to scrub</span>
           </div>
