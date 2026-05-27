@@ -175,10 +175,6 @@ function windArrowHook(ddIdx: number) {
     const cy = top + stripH / 2;
     const color = cssVar("--c-wind");
 
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.08;
-    ctx.fillRect(u.bbox.left, u.bbox.top + 1, u.bbox.width, stripH + 2);
-
     const minGap = 20;
     let lastX = -Infinity;
     for (let i = 0; i < dd.length; i++) {
@@ -204,13 +200,6 @@ function windArrowHook(ddIdx: number) {
       ctx.restore();
     }
 
-    ctx.globalAlpha = 0.5;
-    ctx.strokeStyle = cssVar("--grid-axis");
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(u.bbox.left, u.bbox.top + stripH + 3.5);
-    ctx.lineTo(u.bbox.left + u.bbox.width, u.bbox.top + stripH + 3.5);
-    ctx.stroke();
     ctx.restore();
   };
 }
@@ -354,12 +343,11 @@ function tempPanel(p: VentuskyPayload, sun: SunEvent[], showNight: () => boolean
         {},
         { label: "Temp", scale: "t", stroke: cTemp, fill: cTempFill, width: 2 },
         { label: "Feels-like", scale: "t", stroke: cFeels, width: 1.5, dash: [4, 4], points: { show: false },
-          show: p.series.feelsLike?.some((v) => v != null) ?? false },
+          show: showFeelsLike() && (p.series.feelsLike?.some((v) => v != null) ?? false) },
         { label: "Cloud", scale: "c", show: false },
       ],
       axes: [axisX(false), axisY({ scale: "t", values: (_u, v) => v.map((x) => `${Math.round(x as number)}°`), size: 40 })],
-      hooks: { draw: [nightBandsHook(sun, showNight), cloudBandHook(showCloud, 3), cursorLineHook(),
-        (u: uPlot) => { u.setSeries(2, { show: showFeelsLike() }, false); }] },
+      hooks: { draw: [nightBandsHook(sun, showNight), cloudBandHook(showCloud, 3), cursorLineHook()] },
     },
   };
 }
@@ -699,6 +687,8 @@ export function ChartPanels({ payload, showNight, showCloud, showFeelsLike = tru
   const mountedRef = useRef(false);
   useEffect(() => {
     if (!mountedRef.current) { mountedRef.current = true; return; }
+    const tempPlot = plotsRef.current[0];
+    if (tempPlot) tempPlot.setSeries(2, { show: showFeelsLike }, false);
     plotsRef.current.forEach((c) => c.redraw());
   }, [showNight, showCloud, showFeelsLike]);
 
