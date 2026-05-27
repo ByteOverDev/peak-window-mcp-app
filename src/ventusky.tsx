@@ -588,6 +588,184 @@ function CloudLayer({ tcc, windSpeed }: { tcc: number; windSpeed: number }) {
   return <canvas ref={canvasRef} className={styles.mtnClouds} />;
 }
 
+// ── Rain/snow particles + lightning (Ventusky-style trails) ──
+interface Droplet {
+  x: number;
+  y: number;
+  speed: number;
+  len: number;
+  opacity: number;
+}
+
+function spawnDroplet(isSnow: boolean, intensity: number): Droplet {
+  return {
+    x: Math.random() * 1.3 - 0.15,
+    y: -Math.random() * 0.3,
+    speed: isSnow ? 0.06 + Math.random() * 0.10 : 0.3 + Math.random() * 0.5,
+    len: isSnow ? 0 : 0.015 + intensity * 0.015 + Math.random() * 0.01,
+    opacity: 0.2 + intensity * (0.3 + Math.random() * 0.2),
+  };
+}
+
+function resetDroplet(d: Droplet) {
+  d.y = -0.02 - Math.random() * 0.1;
+  d.x = Math.random() * 1.3 - 0.15;
+}
+
+function drawSnowDot(ctx: CanvasRenderingContext2D, px: number, py: number, alpha: number) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(230, 235, 245, 0.9)";
+  ctx.beginPath();
+  ctx.arc(px, py, 1.2 + Math.random() * 0.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawRainStreak(ctx: CanvasRenderingContext2D, px: number, py: number, d: Droplet, windDrift: number, w: number, h: number, alpha: number, intensity: number) {
+  const trailLen = d.len * h;
+  const dx = windDrift * d.len * w * 0.4;
+  const grad = ctx.createLinearGradient(px, py - trailLen, px + dx, py);
+  grad.addColorStop(0, `rgba(170, 200, 235, 0)`);
+  grad.addColorStop(0.3, `rgba(180, 210, 240, ${alpha * 0.4})`);
+  grad.addColorStop(1, `rgba(200, 220, 250, ${alpha})`);
+  ctx.save();
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 1.2 + intensity * 0.5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(px - dx * 0.3, py - trailLen * 0.8);
+  ctx.lineTo(px + dx, py);
+  ctx.stroke();
+  ctx.fillStyle = `rgba(210, 225, 250, ${alpha * 1.2})`;
+  ctx.beginPath();
+  ctx.arc(px + dx, py, 0.8 + intensity * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawLightningBolt(ctx: CanvasRenderingContext2D, w: number, h: number, alpha: number) {
+  ctx.save();
+  ctx.fillStyle = `rgba(220, 230, 255, ${alpha * 0.15})`;
+  ctx.fillRect(0, 0, w, h);
+  if (alpha > 0.5) {
+    const bx = 0.2 + Math.random() * 0.6;
+    ctx.strokeStyle = `rgba(200, 210, 255, ${alpha})`;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = "rgba(180, 200, 255, 0.8)";
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    let lx = bx * w;
+    let ly = 0.05 * h;
+    ctx.moveTo(lx, ly);
+    const segs = 5 + Math.floor(Math.random() * 4);
+    for (let s = 0; s < segs; s++) {
+      lx += (Math.random() - 0.5) * 30;
+      ly += (0.06 + Math.random() * 0.04) * h;
+      ctx.lineTo(lx, ly);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  ctx.restore();
+}
+
+function PrecipLayer({ precip, precipType, windSpeed, isThunder }: {
+  precip: number; precipType: string; windSpeed: number; isThunder: boolean;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const dropsRef = useRef<Droplet[]>([]);
+  const rafRef = useRef(0);
+  const precipRef = useRef(precip);
+  const typeRef = useRef(precipType);
+  const windRef = useRef(windSpeed);
+  const thunderRef = useRef(isThunder);
+  precipRef.current = precip;
+  typeRef.current = precipType;
+  windRef.current = windSpeed;
+  thunderRef.current = isThunder;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let lastTime = 0;
+    let flashAlpha = 0;
+    let nextFlash = 2000 + Math.random() * 4000;
+    let elapsed = 0;
+
+    const animate = (time: number) => {
+      const dt = lastTime ? (time - lastTime) / 1000 : 0.016;
+      lastTime = time;
+      elapsed += dt * 1000;
+
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (canvas.width !== w * 2 || canvas.height !== h * 2) {
+        canvas.width = w * 2;
+        canvas.height = h * 2;
+        ctx.scale(2, 2);
+      }
+      ctx.clearRect(0, 0, w, h);
+
+      const rr = precipRef.current;
+      const pType = typeRef.current;
+      const wind = windRef.current;
+      const intensity = Math.min(1, rr / 4);
+
+      if (rr > 0.05) {
+        const isSnow = pType === "snow";
+        const isMixed = pType === "mixed";
+        const windDrift = Math.min(0.5, wind * 0.03);
+        const count = Math.round(60 + intensity * 340);
+
+        while (dropsRef.current.length < count) dropsRef.current.push(spawnDroplet(isSnow, intensity));
+        if (dropsRef.current.length > count) dropsRef.current.length = count;
+
+        for (const d of dropsRef.current) {
+          d.y += d.speed * (isSnow ? 0.8 : 2.8) * dt;
+          d.x += windDrift * dt * (isSnow ? 0.4 : 1.2);
+          if (isSnow) d.x += Math.sin(time * 0.0015 + d.y * 8) * 0.0004;
+          if (d.y > 0.62 || d.x > 1.15) resetDroplet(d);
+
+          const px = d.x * w;
+          const py = d.y * h;
+          const alpha = d.opacity * intensity;
+
+          if (isSnow || (isMixed && d.speed < 0.12)) {
+            drawSnowDot(ctx, px, py, alpha);
+          } else {
+            drawRainStreak(ctx, px, py, d, windDrift, w, h, alpha, intensity);
+          }
+        }
+      } else {
+        dropsRef.current.length = 0;
+      }
+
+      if (thunderRef.current && rr > 0.05) {
+        if (elapsed > nextFlash) {
+          flashAlpha = 0.7 + Math.random() * 0.3;
+          nextFlash = elapsed + 1500 + Math.random() * 5000;
+        }
+        if (flashAlpha > 0) {
+          drawLightningBolt(ctx, w, h, flashAlpha);
+          flashAlpha *= 0.85;
+          if (flashAlpha < 0.02) flashAlpha = 0;
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  return <canvas ref={canvasRef} className={styles.mtnClouds} />;
+}
+
 function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cursorIdx: number | null }) {
   const summit = payload.summitElevationM;
   if (summit == null) return null;
@@ -599,6 +777,10 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
   const windDeg = dd[idx] ?? null;
   const tcc = (payload.series.tcc[idx] ?? 0) as number;
   const windSpeed = (payload.series.ff[idx] ?? 0) as number;
+  const precip = (payload.series.rr[idx] ?? 0) as number;
+  const precipType = payload.series.precipType[idx] ?? "none";
+  const gust = (payload.series.fx[idx] ?? 0) as number;
+  const isThunder = precip >= 2.0 && gust >= 12;
 
   const W = 1000, H = 900;
   const peakY = 140;
@@ -687,6 +869,7 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
       </svg>
 
       <CloudLayer tcc={tcc} windSpeed={windSpeed} />
+      <PrecipLayer precip={precip} precipType={precipType} windSpeed={windSpeed} isThunder={isThunder} />
 
       <div className={styles.mtnPeakZone} style={{ left: `${(GK_PEAK_IDX / (GK_PROFILE.length - 1)) * 100}%` }}>
         <div className={styles.mtnPeakWind}>
@@ -708,6 +891,16 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
       </div>
     </div>
   );
+}
+
+function findCursorIdx(charts: uPlot[], e: MouseEvent): number | null {
+  for (const pl of charts) {
+    const rect = pl.over.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right) continue;
+    if (e.clientY < rect.top || e.clientY > rect.bottom) continue;
+    return pl.cursor.idx ?? null;
+  }
+  return null;
 }
 
 interface ChartPanelsProps {
@@ -766,20 +959,14 @@ export function ChartPanels({ payload, showNight, showCloud, showFeelsLike = tru
     plotsRef.current = charts;
 
     const onMove = (e: MouseEvent) => {
-      for (const pl of charts) {
-        const rect = pl.over.getBoundingClientRect();
-        if (e.clientX >= rect.left && e.clientX <= rect.right &&
-            e.clientY >= rect.top && e.clientY <= rect.bottom) {
-          const idx = pl.cursor.idx;
-          if (idx != null) {
-            setHoverIdx(idx);
-            onCursorRef.current({ idx, clientX: e.clientX, clientY: e.clientY, source: "chart" });
-          }
-          return;
-        }
+      const idx = findCursorIdx(charts, e);
+      if (idx != null) {
+        setHoverIdx(idx);
+        onCursorRef.current({ idx, clientX: e.clientX, clientY: e.clientY, source: "chart" });
+      } else {
+        setHoverIdx(null);
+        onCursorRef.current(null);
       }
-      setHoverIdx(null);
-      onCursorRef.current(null);
     };
     const onLeave = () => { setHoverIdx(null); onCursorRef.current(null); };
     const root = containerRef.current;
