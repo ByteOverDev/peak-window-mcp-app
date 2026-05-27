@@ -448,10 +448,31 @@ function windPanel(p: VentuskyPayload, sun: SunEvent[], showNight: () => boolean
 const COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
 const mtnCompass = (deg: number) => COMPASS[Math.round(((deg % 360 + 360) % 360) / 22.5) % 16];
 
-const seededRand = (i: number) => {
-  const x = Math.sin(i * 12.9898 + 3.7) * 43758.5453;
-  return x - Math.floor(x);
-};
+// Skyline envelope: max elevation across 7 latitude rows through Großglockner massif.
+// 80 columns W→E, ~14km span. Source: Open-Meteo Elevation API (Copernicus DEM 90m).
+const GK_PROFILE = [
+  0.6865, 0.5928, 0.5381, 0.4601, 0.4042, 0.3309, 0.3249, 0.3075, 0.3129, 0.2853,
+  0.2721, 0.1730, 0.0468, 0.0000, 0.0529, 0.1315, 0.2492, 0.3015, 0.3664, 0.3544,
+  0.4060, 0.4781, 0.5351, 0.5814, 0.6216, 0.6486, 0.6667, 0.6913, 0.7321, 0.8018,
+  0.8679, 0.8565, 0.8571, 0.8607, 0.8913, 0.8961, 0.9952, 0.9706, 0.8883, 1.0000,
+  0.9694, 0.9345, 0.8949, 0.8631, 0.8018, 0.7574, 0.7009, 0.6517, 0.6643, 0.6733,
+  0.7057, 0.7015, 0.6901, 0.6763, 0.6330, 0.5742, 0.5135, 0.4727, 0.4565, 0.5063,
+  0.5550, 0.5742, 0.5369, 0.5856, 0.4931, 0.4162, 0.4042, 0.3556, 0.2498, 0.1904,
+  0.2228, 0.2583, 0.3459, 0.3712, 0.3760, 0.4054, 0.4733, 0.5231, 0.6126, 0.6330,
+];
+const GK_PEAK_IDX = 39;
+
+// Back ridge: real elevation at 47.093°N (~2km north), same longitude span.
+const GK_BACK_PROFILE = [
+  0.4444, 0.5423, 0.5273, 0.4336, 0.4186, 0.3988, 0.3808, 0.3790, 0.3147, 0.2342,
+  0.1093, 0.0000, 0.0000, 0.0288, 0.1285, 0.2126, 0.3153, 0.3826, 0.4120, 0.4024,
+  0.4348, 0.4745, 0.5934, 0.6498, 0.6913, 0.7219, 0.7483, 0.7664, 0.8258, 0.8468,
+  0.8048, 0.7730, 0.7459, 0.7153, 0.6643, 0.6030, 0.5712, 0.5598, 0.5495, 0.5339,
+  0.5105, 0.4745, 0.3814, 0.2739, 0.2408, 0.2342, 0.2264, 0.2138, 0.2060, 0.2168,
+  0.2763, 0.3544, 0.3892, 0.3694, 0.3844, 0.4408, 0.4378, 0.4342, 0.4685, 0.5556,
+  0.6468, 0.5850, 0.5165, 0.4925, 0.5051, 0.4967, 0.4727, 0.3862, 0.3033, 0.2925,
+  0.3285, 0.3568, 0.3988, 0.4162, 0.4745, 0.4264, 0.4234, 0.4883, 0.5243, 0.5694,
+];
 
 // ── Animated cloud layer for mountain backdrop ─────────────
 interface CloudBlob {
@@ -493,7 +514,7 @@ function CloudLayer({ tcc, windSpeed }: { tcc: number; windSpeed: number }) {
     for (let i = 0; i < count; i++) {
       blobs.push({
         x: Math.random() * 1.4 - 0.2,
-        y: 0.04 + Math.random() * 0.34,
+        y: 0.25 + Math.random() * 0.25,
         r: 0.045 + Math.random() * 0.045,
         baseAlpha: 0.10 + frac * (0.14 + Math.random() * 0.10),
         speed: 0.5 + Math.random() * 0.8,
@@ -579,34 +600,21 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
   const tcc = (payload.series.tcc[idx] ?? 0) as number;
   const windSpeed = (payload.series.ff[idx] ?? 0) as number;
 
-  const W = 1000, H = 760;
-  const peakX = 512;
-  const peakY = 22;
-  const baseY = 380;
+  const W = 1000, H = 900;
+  const peakY = 140;
+  const baseY = 480;
 
   const ridgePts = useMemo(() => {
     const pts: [number, number][] = [];
     pts.push([-30, baseY + 40]);
-    const leftN = 28;
-    for (let i = 1; i < leftN; i++) {
-      const t = i / leftN;
-      const x = -30 + (peakX - (-30)) * t;
-      const targetY = baseY + (peakY - baseY) * Math.pow(t, 2.55);
-      const jag = (seededRand(i * 7.31) - 0.5) * 26 * (1 - 0.55 * t);
-      pts.push([x, targetY + jag]);
-    }
-    pts.push([peakX, peakY]);
-    const rightN = 28;
-    for (let i = 1; i <= rightN; i++) {
-      const t = i / rightN;
-      const x = peakX + ((W + 30) - peakX) * t;
-      const targetY = peakY + (baseY - peakY) * Math.pow(t, 2.35);
-      const jag = (seededRand(i * 11.71 + 100) - 0.5) * 30 * (1 - 0.55 * t);
-      pts.push([x, targetY + jag]);
+    for (let i = 0; i < GK_PROFILE.length; i++) {
+      const x = (i / (GK_PROFILE.length - 1)) * W;
+      const y = baseY - GK_PROFILE[i] * (baseY - peakY);
+      pts.push([x, y]);
     }
     pts.push([W + 30, baseY + 40]);
     return pts;
-  }, [summit]);
+  }, []);
 
   const ridgePath = `M ${ridgePts[0][0]},${ridgePts[0][1]} ` +
     ridgePts.slice(1).map(([x, y]) => `L ${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
@@ -614,15 +622,10 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
   const backRidgePts = useMemo(() => {
     const pts: [number, number][] = [];
     pts.push([-30, baseY + 40]);
-    for (let i = 0; i <= 36; i++) {
-      const t = i / 36;
-      const x = -30 + ((W + 30) - (-30)) * t;
-      const y =
-        baseY -
-        260 * Math.exp(-Math.pow((t - 0.22) * 3.8, 2)) -
-        200 * Math.exp(-Math.pow((t - 0.74) * 4.8, 2));
-      const jag = (seededRand(i * 4.13 + 50) - 0.5) * 14;
-      pts.push([x, y + jag]);
+    for (let i = 0; i < GK_BACK_PROFILE.length; i++) {
+      const x = (i / (GK_BACK_PROFILE.length - 1)) * W;
+      const y = baseY - GK_BACK_PROFILE[i] * (baseY - peakY - 40);
+      pts.push([x, y]);
     }
     pts.push([W + 30, baseY + 40]);
     return pts;
@@ -685,7 +688,7 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
 
       <CloudLayer tcc={tcc} windSpeed={windSpeed} />
 
-      <div className={styles.mtnPeakZone} style={{ left: "51.2%" }}>
+      <div className={styles.mtnPeakZone} style={{ left: `${(GK_PEAK_IDX / (GK_PROFILE.length - 1)) * 100}%` }}>
         <div className={styles.mtnPeakWind}>
           {windDeg != null && (
             <div

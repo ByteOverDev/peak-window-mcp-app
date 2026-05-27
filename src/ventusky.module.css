@@ -69,13 +69,13 @@
 
 .forecastBody {
   display: block;
+  overflow: hidden;
 }
 
 .panels {
-  padding: 4px 6px 0;
+  padding: 440px 6px 0;
   position: relative;
   min-width: 0;
-  margin-top: 300px;
   overflow: visible;
 }
 .panel {
@@ -88,7 +88,7 @@
 /* ── Mountain backdrop ───────────────────────────────────── */
 .mtnBackdrop {
   position: absolute;
-  top: -300px;
+  top: 0;
   left: 0;
   right: 0;
   bottom: 0;
