@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { CloudRain, Snowflake, Thermometer, Wind } from "lucide-react";
@@ -453,6 +453,120 @@ const seededRand = (i: number) => {
   return x - Math.floor(x);
 };
 
+// ── Animated cloud layer for mountain backdrop ─────────────
+interface CloudBlob {
+  x: number;
+  y: number;
+  r: number;
+  baseAlpha: number;
+  speed: number;
+  // each cloud is a cluster of soft circles with offsets
+  lobes: { dx: number; dy: number; r: number }[];
+}
+
+function makeLobes(): CloudBlob["lobes"] {
+  const n = 4 + Math.floor(Math.random() * 4);
+  const lobes: CloudBlob["lobes"] = [];
+  for (let i = 0; i < n; i++) {
+    lobes.push({
+      dx: (Math.random() - 0.5) * 1.6,
+      dy: (Math.random() - 0.5) * 0.8,
+      r: 0.5 + Math.random() * 0.6,
+    });
+  }
+  return lobes;
+}
+
+function CloudLayer({ tcc, windSpeed }: { tcc: number; windSpeed: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const blobsRef = useRef<CloudBlob[]>([]);
+  const rafRef = useRef(0);
+  const tccRef = useRef(tcc);
+  const windRef = useRef(windSpeed);
+  tccRef.current = tcc;
+  windRef.current = windSpeed;
+
+  const spawnBlobs = useCallback((cover: number) => {
+    const frac = Math.max(0, Math.min(1, cover / 100));
+    const count = Math.round(4 + frac * 12);
+    const blobs: CloudBlob[] = [];
+    for (let i = 0; i < count; i++) {
+      blobs.push({
+        x: Math.random() * 1.4 - 0.2,
+        y: 0.04 + Math.random() * 0.34,
+        r: 0.045 + Math.random() * 0.045,
+        baseAlpha: 0.10 + frac * (0.14 + Math.random() * 0.10),
+        speed: 0.5 + Math.random() * 0.8,
+        lobes: makeLobes(),
+      });
+    }
+    return blobs;
+  }, []);
+
+  useEffect(() => {
+    blobsRef.current = spawnBlobs(tcc);
+  }, [Math.round(tcc / 10)]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let lastTime = 0;
+    const animate = (time: number) => {
+      const dt = lastTime ? (time - lastTime) / 1000 : 0.016;
+      lastTime = time;
+
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (canvas.width !== w * 2 || canvas.height !== h * 2) {
+        canvas.width = w * 2;
+        canvas.height = h * 2;
+        ctx.scale(2, 2);
+      }
+
+      ctx.clearRect(0, 0, w, h);
+
+      const cover = tccRef.current;
+      const wind = windRef.current;
+      const frac = Math.max(0, Math.min(1, cover / 100));
+      if (frac < 0.05) { rafRef.current = requestAnimationFrame(animate); return; }
+
+      const drift = (0.008 + wind * 0.004) * dt;
+
+      for (const b of blobsRef.current) {
+        b.x += drift * b.speed;
+        if (b.x - b.r * 2 > 1.2) b.x = -0.2 - b.r * 2;
+
+        const cx = b.x * w;
+        const cy = b.y * h;
+        const baseR = b.r * w;
+        const alpha = b.baseAlpha * frac;
+
+        for (const lobe of b.lobes) {
+          const lx = cx + lobe.dx * baseR;
+          const ly = cy + lobe.dy * baseR;
+          const lr = lobe.r * baseR;
+          const grad = ctx.createRadialGradient(lx, ly, 0, lx, ly, lr);
+          grad.addColorStop(0, `rgba(220, 225, 235, ${alpha})`);
+          grad.addColorStop(0.5, `rgba(215, 220, 230, ${alpha * 0.6})`);
+          grad.addColorStop(1, `rgba(210, 215, 225, 0)`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(lx - lr, ly - lr, lr * 2, lr * 2);
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  return <canvas ref={canvasRef} className={styles.mtnClouds} />;
+}
+
 function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cursorIdx: number | null }) {
   const summit = payload.summitElevationM;
   if (summit == null) return null;
@@ -462,6 +576,8 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
   const idx = cursorIdx ?? 0;
   const currentSnow = snowlmt[idx] ?? snowlmt[0] ?? summit;
   const windDeg = dd[idx] ?? null;
+  const tcc = (payload.series.tcc[idx] ?? 0) as number;
+  const windSpeed = (payload.series.ff[idx] ?? 0) as number;
 
   const W = 1000, H = 760;
   const peakX = 512;
@@ -566,6 +682,8 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
                 style={{ transition: "y1 360ms ease, y2 360ms ease" }} />
         </g>
       </svg>
+
+      <CloudLayer tcc={tcc} windSpeed={windSpeed} />
 
       <div className={styles.mtnPeakZone} style={{ left: "51.2%" }}>
         <div className={styles.mtnPeakWind}>
