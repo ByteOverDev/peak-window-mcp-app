@@ -9,7 +9,6 @@ import type { CursorState, PeakWindowResult } from "./types.ts";
 import { computeSunMarkers } from "./sun.ts";
 import { TopBar } from "./components/TopBar.tsx";
 import { HeroWindow } from "./components/HeroWindow.tsx";
-import { MountainProfile } from "./components/MountainProfile.tsx";
 import { ChartPanels, snowRelevant, type VentuskyPayload } from "./ventusky.tsx";
 import { StatsRow } from "./components/StatsRow.tsx";
 import { WeekOverview } from "./components/WeekOverview.tsx";
@@ -203,7 +202,6 @@ function PeakWindowApp() {
             </div>
 
             <div className={vk.forecastBody}>
-              <MountainProfile data={data} cursorIdx={cursor?.idx ?? null} />
               {chartPayload && (
                 <ChartPanels
                   payload={chartPayload}

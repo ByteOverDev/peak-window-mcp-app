@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { CloudRain, Snowflake, Thermometer, Wind } from "lucide-react";
@@ -158,6 +158,58 @@ function cloudBandHook(on: () => boolean, dataIdx = 2) {
     ctx.beginPath();
     ctx.moveTo(u.bbox.left, top + stripH + 0.5);
     ctx.lineTo(u.bbox.left + u.bbox.width, top + stripH + 0.5);
+    ctx.stroke();
+    ctx.restore();
+  };
+}
+
+function windArrowHook(ddIdx: number) {
+  return (u: uPlot) => {
+    const dd = u.data[ddIdx];
+    if (!dd) return;
+    const ctx = u.ctx;
+    ctx.save();
+    const arrowSize = 7;
+    const stripH = 16;
+    const top = u.bbox.top + 3;
+    const cy = top + stripH / 2;
+    const color = cssVar("--c-wind");
+
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.08;
+    ctx.fillRect(u.bbox.left, u.bbox.top + 1, u.bbox.width, stripH + 2);
+
+    const minGap = 20;
+    let lastX = -Infinity;
+    for (let i = 0; i < dd.length; i++) {
+      const deg = dd[i];
+      if (deg == null) continue;
+      const x = u.valToPos(u.data[0][i] as number, "x", true);
+      if (x - lastX < minGap) continue;
+      lastX = x;
+
+      const rad = ((deg as number + 180) * Math.PI) / 180;
+      ctx.save();
+      ctx.translate(x, cy);
+      ctx.rotate(rad);
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, -arrowSize);
+      ctx.lineTo(arrowSize * 0.45, arrowSize * 0.5);
+      ctx.lineTo(0, arrowSize * 0.2);
+      ctx.lineTo(-arrowSize * 0.45, arrowSize * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = cssVar("--grid-axis");
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(u.bbox.left, u.bbox.top + stripH + 3.5);
+    ctx.lineTo(u.bbox.left + u.bbox.width, u.bbox.top + stripH + 3.5);
     ctx.stroke();
     ctx.restore();
   };
@@ -386,7 +438,7 @@ function windPanel(p: VentuskyPayload, sun: SunEvent[], showNight: () => boolean
   return {
     title: "Wind",
     height: 110,
-    data: [p.series.time, p.series.ff, p.series.fx] as uPlot.AlignedData,
+    data: [p.series.time, p.series.ff, p.series.fx, p.series.dd] as uPlot.AlignedData,
     opts: {
       cursor: { sync: { key: SYNC_KEY }, drag: { x: false, y: false }, points: { show: false } },
       scales: { x: { time: true }, w: { auto: true } },
@@ -395,13 +447,159 @@ function windPanel(p: VentuskyPayload, sun: SunEvent[], showNight: () => boolean
         {},
         { label: "Wind", scale: "w", stroke: cWind, width: 2, points: { show: false } },
         { label: "Gust", scale: "w", stroke: cGust, width: 1.5, dash: [4, 4], points: { show: false } },
+        { label: "Dir", scale: "d", show: false },
       ],
       axes: [axisX(true), axisY({ scale: "w", values: (_u, v) => v.map((x) => `${(x as number).toFixed(0)}`), size: 40, space: 30 })],
-      hooks: { draw: [nightBandsHook(sun, showNight), cursorLineHook()] },
+      hooks: { draw: [nightBandsHook(sun, showNight), windArrowHook(3), cursorLineHook()] },
     },
   };
 }
 
+
+// ── Mountain backdrop ───────────────────────────────────────
+const COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const mtnCompass = (deg: number) => COMPASS[Math.round(((deg % 360 + 360) % 360) / 22.5) % 16];
+
+const seededRand = (i: number) => {
+  const x = Math.sin(i * 12.9898 + 3.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cursorIdx: number | null }) {
+  const summit = payload.summitElevationM;
+  if (summit == null) return null;
+
+  const snowlmt = payload.series.snowlmt;
+  const dd = payload.series.dd;
+  const idx = cursorIdx ?? 0;
+  const currentSnow = snowlmt[idx] ?? snowlmt[0] ?? summit;
+  const windDeg = dd[idx] ?? null;
+
+  const W = 1000, H = 760;
+  const peakX = 512;
+  const peakY = 22;
+  const baseY = 380;
+
+  const ridgePts = useMemo(() => {
+    const pts: [number, number][] = [];
+    pts.push([-30, baseY + 40]);
+    const leftN = 28;
+    for (let i = 1; i < leftN; i++) {
+      const t = i / leftN;
+      const x = -30 + (peakX - (-30)) * t;
+      const targetY = baseY + (peakY - baseY) * Math.pow(t, 2.55);
+      const jag = (seededRand(i * 7.31) - 0.5) * 26 * (1 - 0.55 * t);
+      pts.push([x, targetY + jag]);
+    }
+    pts.push([peakX, peakY]);
+    const rightN = 28;
+    for (let i = 1; i <= rightN; i++) {
+      const t = i / rightN;
+      const x = peakX + ((W + 30) - peakX) * t;
+      const targetY = peakY + (baseY - peakY) * Math.pow(t, 2.35);
+      const jag = (seededRand(i * 11.71 + 100) - 0.5) * 30 * (1 - 0.55 * t);
+      pts.push([x, targetY + jag]);
+    }
+    pts.push([W + 30, baseY + 40]);
+    return pts;
+  }, [summit]);
+
+  const ridgePath = `M ${ridgePts[0][0]},${ridgePts[0][1]} ` +
+    ridgePts.slice(1).map(([x, y]) => `L ${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+
+  const backRidgePts = useMemo(() => {
+    const pts: [number, number][] = [];
+    pts.push([-30, baseY + 40]);
+    for (let i = 0; i <= 36; i++) {
+      const t = i / 36;
+      const x = -30 + ((W + 30) - (-30)) * t;
+      const y =
+        baseY -
+        260 * Math.exp(-Math.pow((t - 0.22) * 3.8, 2)) -
+        200 * Math.exp(-Math.pow((t - 0.74) * 4.8, 2));
+      const jag = (seededRand(i * 4.13 + 50) - 0.5) * 14;
+      pts.push([x, y + jag]);
+    }
+    pts.push([W + 30, baseY + 40]);
+    return pts;
+  }, []);
+  const backRidgePath = `M ${backRidgePts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" L ")}`;
+
+  const snowFrac = Math.max(0.04, Math.min(0.82, (summit - (currentSnow as number)) / summit));
+  const snowY = peakY + snowFrac * (baseY - peakY);
+
+  const peakName = payload.peakName ?? "Summit";
+
+  return (
+    <div className={styles.mtnBackdrop} aria-hidden="true">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className={styles.mtnSvg}>
+        <defs>
+          <linearGradient id="mtnBack" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="var(--c-snowlmt)" stopOpacity="0.06" />
+            <stop offset="60%"  stopColor="var(--surface-2)" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="var(--surface)"   stopOpacity="0.25" />
+          </linearGradient>
+          <linearGradient id="mtnRock" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="var(--surface-3)" stopOpacity="0.95" />
+            <stop offset="55%"  stopColor="var(--surface-2)" stopOpacity="0.75" />
+            <stop offset="92%"  stopColor="var(--surface)"   stopOpacity="0.15" />
+            <stop offset="100%" stopColor="var(--surface)"   stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="mtnSnow" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="var(--c-snowlmt)" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="var(--c-snow)"    stopOpacity="0.20" />
+          </linearGradient>
+          <clipPath id="mtnRidgeClip">
+            <path d={`${ridgePath} L ${W + 30},${baseY + 40} L -30,${baseY + 40} Z`} />
+          </clipPath>
+        </defs>
+
+        <path d={`${backRidgePath} L ${W + 30},${baseY + 40} L -30,${baseY + 40} Z`}
+              fill="url(#mtnBack)" />
+
+        <path d={`${ridgePath} L ${W + 30},${baseY + 40} L -30,${baseY + 40} Z`}
+              fill="url(#mtnRock)" />
+
+        <g clipPath="url(#mtnRidgeClip)">
+          <rect x="-30" y={-40} width={W + 60} height={snowY + 40} fill="url(#mtnSnow)"
+                style={{ transition: "height 360ms ease" }} />
+          <rect x="-30" y={snowY - 6} width={W + 60} height="12" fill="var(--c-snowlmt)"
+                opacity="0.18" style={{ transition: "y 360ms ease" }} />
+        </g>
+
+        <path d={ridgePath} fill="none"
+              stroke="var(--border-strong)" strokeWidth="0.8" strokeOpacity="0.55"
+              strokeLinejoin="round" />
+
+        <g clipPath="url(#mtnRidgeClip)">
+          <line x1="0" y1={snowY} x2={W} y2={snowY}
+                stroke="var(--c-snowlmt)" strokeWidth="0.7"
+                strokeDasharray="4 5" opacity="0.40"
+                style={{ transition: "y1 360ms ease, y2 360ms ease" }} />
+        </g>
+      </svg>
+
+      <div className={styles.mtnPeakZone} style={{ left: "51.2%" }}>
+        <div className={styles.mtnPeakWind}>
+          {windDeg != null && (
+            <div
+              className={styles.mtnPeakVane}
+              style={{ transform: `rotate(${(windDeg + 180) % 360}deg)` }}
+            >
+              <svg viewBox="0 0 16 18">
+                <path d="M 8 1 L 13 15 L 8 12 L 3 15 Z" fill="var(--c-wind)" />
+              </svg>
+            </div>
+          )}
+          {windDeg != null && (
+            <span className={styles.mtnPeakDir}>{mtnCompass(windDeg)}</span>
+          )}
+        </div>
+        <div className={styles.mtnPeakName}>{peakName}</div>
+      </div>
+    </div>
+  );
+}
 
 interface ChartPanelsProps {
   payload: VentuskyPayload;
@@ -425,6 +623,7 @@ export function ChartPanels({ payload, showNight, showCloud, showFeelsLike = tru
   const showCloudRef = useRef(showCloud);
   const showFeelsLikeRef = useRef(showFeelsLike);
   const onCursorRef = useRef(onCursor);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   showNightRef.current = showNight;
   showCloudRef.current = showCloud;
   showFeelsLikeRef.current = showFeelsLike;
@@ -464,14 +663,16 @@ export function ChartPanels({ payload, showNight, showCloud, showFeelsLike = tru
             e.clientY >= rect.top && e.clientY <= rect.bottom) {
           const idx = pl.cursor.idx;
           if (idx != null) {
+            setHoverIdx(idx);
             onCursorRef.current({ idx, clientX: e.clientX, clientY: e.clientY, source: "chart" });
           }
           return;
         }
       }
+      setHoverIdx(null);
       onCursorRef.current(null);
     };
-    const onLeave = () => onCursorRef.current(null);
+    const onLeave = () => { setHoverIdx(null); onCursorRef.current(null); };
     const root = containerRef.current;
     if (root) {
       root.addEventListener("mousemove", onMove);
@@ -512,14 +713,16 @@ export function ChartPanels({ payload, showNight, showCloud, showFeelsLike = tru
   }, [externalCursorIdx]);
 
   const hasSnow = snowRelevant(payload);
+  const effectiveCursorIdx = externalCursorIdx ?? hoverIdx;
 
   return (
     <div className={styles.panels} ref={containerRef}>
+      <MountainBackdrop payload={payload} cursorIdx={effectiveCursorIdx} />
       <div className={styles.panel}>
         <div className={styles.panelLabel}><Thermometer size={12} /> Temperature</div>
         <div ref={refs.temp} />
       </div>
-      <div className={styles.panel}>
+      <div className={`${styles.panel} ${styles.panelPadTop}`}>
         <div className={styles.panelLabel}><CloudRain size={12} /> Precipitation <span className={styles.panelAux}>mm/h</span></div>
         <div ref={refs.precip} />
       </div>
@@ -529,8 +732,8 @@ export function ChartPanels({ payload, showNight, showCloud, showFeelsLike = tru
           <div ref={refs.snow} />
         </div>
       )}
-      <div className={styles.panel}>
-        <div className={styles.panelLabel}><Wind size={12} /> Wind <span className={styles.panelAux}>m/s</span></div>
+      <div className={`${styles.panel} ${styles.panelPadTop}`}>
+        <div className={styles.panelLabel}><Wind size={12} /> Wind <span className={styles.panelAux}>m/s &middot; direction</span></div>
         <div ref={refs.wind} />
       </div>
     </div>
