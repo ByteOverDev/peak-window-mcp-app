@@ -6,7 +6,8 @@ export interface ForecastProviderResult {
   gridLon: number;
   gridElevationM: number | null;
   gridResolutionKm: number;
-  source: string;
+  providerId: string; // stable id matching ForecastProvider.name (for UI color-coding)
+  source: string; // clean human-readable model label (no lapse note)
 }
 
 export interface ForecastProvider {

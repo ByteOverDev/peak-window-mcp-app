@@ -99,6 +99,9 @@ function PeakWindowApp() {
       gridResolutionKm: data.gridResolutionKm,
       series: data.series,
       score: data.hours.map((h) => h.score),
+      profile: data.profile,
+      backProfile: data.backProfile,
+      peakIdx: data.peakIdx,
     };
   }, [data]);
 
@@ -218,7 +221,9 @@ function PeakWindowApp() {
             <StatsRow data={data} />
 
             <div className={vk.source}>
-              Source: {data.source} &middot; fetched {new Date(data.fetchedAt).toLocaleString()}
+              Source: {data.source}
+              {data.lapseNote && <> &middot; {data.lapseNote}</>}
+              {" "}&middot; fetched {new Date(data.fetchedAt).toLocaleString()}
             </div>
             <div className={vk.disclaimer}>
               Scores are automated estimates based on NWP model output, not a substitute for local knowledge, current conditions, or alpine experience. Always check official forecasts and assess conditions on the ground.

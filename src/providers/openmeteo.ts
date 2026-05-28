@@ -121,6 +121,7 @@ function createOpenMeteoProvider(config: OpenMeteoProviderConfig): ForecastProvi
         gridLon: json.longitude,
         gridElevationM: json.elevation,
         gridResolutionKm: config.gridResolutionKm,
+        providerId: config.name,
         source: config.source,
       };
     },

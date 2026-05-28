@@ -27,7 +27,7 @@ This is an **MCP App** — it requires an MCP host that supports the [Apps proto
 
 The server runs as a standard MCP server over **stdio** or **SSE**. The rich UI (charts, horizon tape, mountain profile) renders inline in any compliant host. Without one you still get the scored text output.
 
-[Live UI demo (static mock data)](https://byteoverdev.github.io/peak-window-mcp-app/)
+[Live UI demo](https://byteoverdev.github.io/peak-window-mcp-app/) — fetches real forecasts in the browser; pick any peak to see its scored windows and real DEM silhouette.
 
 ## Setup
 

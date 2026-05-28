@@ -2,7 +2,7 @@
  * Test harness — renders the full PeakWindow UI with mock data,
  * bypassing the MCP SDK so we can visually verify in a browser.
  */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Clock, Cloud, MapPin, Moon, Thermometer } from "lucide-react";
 import "./global.css";
@@ -10,6 +10,10 @@ import styles from "./mcp-app.module.css";
 import vk from "./ventusky.module.css";
 import type { CursorState, PeakWindowResult } from "./types.ts";
 import { computeSunMarkers } from "./sun.ts";
+import { PEAKS } from "./peaks.ts";
+import { fetchForecast } from "./providers/index.ts";
+import { fetchPeakProfile } from "./dem.ts";
+import { analyzeForecast } from "./analyze.ts";
 import { TopBar } from "./components/TopBar.tsx";
 import { HeroWindow } from "./components/HeroWindow.tsx";
 import { ChartPanels, snowRelevant, type VentuskyPayload } from "./ventusky.tsx";
@@ -120,19 +124,20 @@ function generateMockData(): PeakWindowResult {
     gridResolutionKm: 2.5,
     issued_at: "2026-05-25T03:00:00.000Z",
     fetchedAt: new Date().toISOString(),
+    providerId: "geosphere",
     source: "GeoSphere Austria — NWP 1h 2.5km",
+    lapseNote: `lapse-corrected ${lapseDeltaC >= 0 ? "+" : ""}${lapseDeltaC.toFixed(1)}°C to ${summitElevationM}m`,
     hours: scored,
     windows,
     series,
+    // null → ventusky falls back to the baked Großglockner profile (matches this sample)
+    profile: null,
+    backProfile: null,
+    peakIdx: null,
   };
 }
 
-function TestApp() {
-  const [data] = useState(() => {
-    const d = generateMockData();
-    (window as unknown as Record<string, unknown>).__mockData = d;
-    return d;
-  });
+function Showcase({ data }: { data: PeakWindowResult }) {
   const [showNight, setShowNight] = useState(true);
   const [showCloud, setShowCloud] = useState(true);
   const [showFeelsLike, setShowFeelsLike] = useState(true);
@@ -157,6 +162,9 @@ function TestApp() {
     gridResolutionKm: data.gridResolutionKm,
     series: data.series,
     score: data.hours.map(h => h.score),
+    profile: data.profile,
+    backProfile: data.backProfile,
+    peakIdx: data.peakIdx,
   }), [data]);
 
   const showSnow = snowRelevant(chartPayload);
@@ -255,7 +263,9 @@ function TestApp() {
         <StatsRow data={data} />
 
         <div className={vk.source}>
-          Source: {data.source} &middot; fetched {new Date(data.fetchedAt).toLocaleString()}
+          Source: {data.source}
+          {data.lapseNote && <> &middot; {data.lapseNote}</>}
+          {" "}&middot; fetched {new Date(data.fetchedAt).toLocaleString()}
         </div>
         <div className={vk.disclaimer}>
           Scores are automated estimates based on NWP model output, not a substitute for local knowledge, current conditions, or alpine experience. Always check official forecasts and assess conditions on the ground.
@@ -264,6 +274,64 @@ function TestApp() {
 
       <FloatingTooltip data={data} cursor={cursor} />
       <PrintView data={data} />
+    </div>
+  );
+}
+
+// Showcase peak list — gazetteer entries that fall inside a provider's forecast
+// horizon. Ordered so the default (first) shows the sharp GeoSphere model.
+const SHOWCASE_PEAKS = PEAKS;
+
+function TestApp() {
+  const [peakName, setPeakName] = useState(SHOWCASE_PEAKS[0].name);
+  const [data, setData] = useState<PeakWindowResult | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+
+  useEffect(() => {
+    const peak = SHOWCASE_PEAKS.find((p) => p.name === peakName) ?? SHOWCASE_PEAKS[0];
+    let cancelled = false;
+    setStatus("loading");
+    setData(null);
+    Promise.all([
+      fetchForecast(peak.lat, peak.lon),
+      fetchPeakProfile(peak.lat, peak.lon).catch(() => null),
+    ])
+      .then(([forecast, profile]) => {
+        if (cancelled) return;
+        setData(analyzeForecast(forecast, {
+          lat: peak.lat, lon: peak.lon, peakName: peak.name, summitElevationM: peak.elevationM, profile,
+        }));
+        setStatus("ready");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Live forecast fetch failed, falling back to sample data:", err);
+        setData(generateMockData());
+        setStatus("error");
+      });
+    return () => { cancelled = true; };
+  }, [peakName]);
+
+  return (
+    <div>
+      <div className={styles.demoBar}>
+        <label className={styles.demoPicker}>
+          <span>Peak</span>
+          <select value={peakName} onChange={(e) => setPeakName(e.target.value)}>
+            {SHOWCASE_PEAKS.map((p) => (
+              <option key={p.name} value={p.name}>{p.name} — {p.region}</option>
+            ))}
+          </select>
+        </label>
+        {status === "loading" && <span className={styles.demoNote}>Loading live forecast…</span>}
+        {status === "error" && <span className={styles.demoNote}>Live fetch failed — showing sample data.</span>}
+        {status === "ready" && data && (
+          <span className={styles.demoNote}>Live · {data.source}</span>
+        )}
+      </div>
+      {data
+        ? <Showcase data={data} />
+        : <div className={styles.embed}><div className={styles.empty}>Loading live forecast…</div></div>}
     </div>
   );
 }

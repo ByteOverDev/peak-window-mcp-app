@@ -13,10 +13,16 @@ export interface PeakWindowResult {
   gridResolutionKm: number;
   issued_at: string;
   fetchedAt: string;
+  providerId: string;
   source: string;
+  lapseNote: string | null;
   hours: import("./scoring.ts").ScoredHour[];
   windows: import("./scoring.ts").ClimbWindow[];
   series: import("./ventusky.tsx").VentuskySeries;
+  // Real elevation silhouette (Open-Meteo DEM); null when the fetch failed.
+  profile: number[] | null;
+  backProfile: number[] | null;
+  peakIdx: number | null;
 }
 
 export interface CursorState {

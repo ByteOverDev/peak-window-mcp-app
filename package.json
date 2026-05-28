@@ -11,7 +11,7 @@
     "dist/mcp-app.html"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "build": "npm run build:ui && npm run build:server",
     "serve": "tsx main.ts",
     "serve:stdio": "tsx main.ts --stdio",
@@ -65,6 +65,7 @@
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "vite": "^8.0.14",
-    "vite-plugin-singlefile": "^2.3.3"
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^3.2.4"
   }
 }
