@@ -16,6 +16,7 @@
     "serve": "tsx main.ts",
     "serve:stdio": "tsx main.ts --stdio",
     "dev": "cross-env NODE_ENV=development concurrently 'cross-env INPUT=mcp-app.html vite build --watch' 'tsx --watch main.ts'",
+    "dev:test-ui": "cross-env INPUT=test-ui.html vite --open /test-ui.html",
     "start": "npm run build && npm run serve",
     "prepublishOnly": "npm run build",
     "build:ui": "cross-env INPUT=mcp-app.html vite build",
