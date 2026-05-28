@@ -61,7 +61,39 @@
   font-family: var(--font-display);
   margin-right: 2px;
 }
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 4px 0;
+}
+.printBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 120ms, border-color 120ms, background 120ms;
+}
+.printBtn:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.printBtn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
 @media (max-width: 560px) {
   .topbar { flex-wrap: wrap; }
   .meta { align-items: flex-start; text-align: left; width: 100%; }
+}
+@media print {
+  .topbar, .actions { display: none; }
 }

@@ -1,4 +1,4 @@
-import { Clock, MountainSnow } from "lucide-react";
+import { Clock, MountainSnow, Printer } from "lucide-react";
 import type { PeakWindowResult } from "../types.ts";
 import s from "./TopBar.module.css";
 
@@ -9,6 +9,7 @@ interface TopBarProps {
 
 export function TopBar({ data, windowCount }: TopBarProps) {
   return (
+    <>
     <div className={s.topbar}>
       <div className={s.brand}>
         <div className={s.mark}><MountainSnow size={22} /></div>
@@ -30,5 +31,19 @@ export function TopBar({ data, windowCount }: TopBarProps) {
         </div>
       )}
     </div>
+    {data && (
+      <div className={s.actions}>
+        <button
+          type="button"
+          className={s.printBtn}
+          onClick={() => window.print()}
+          aria-label="Print forecast"
+        >
+          <Printer size={14} />
+          <span>Print</span>
+        </button>
+      </div>
+    )}
+    </>
   );
 }

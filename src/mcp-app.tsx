@@ -13,6 +13,7 @@ import { ChartPanels, snowRelevant, type VentuskyPayload } from "./ventusky.tsx"
 import { StatsRow } from "./components/StatsRow.tsx";
 import { WeekOverview } from "./components/WeekOverview.tsx";
 import { FloatingTooltip } from "./components/FloatingTooltip.tsx";
+import { PrintView } from "./components/PrintView.tsx";
 
 function parseResult(r: CallToolResult | null): PeakWindowResult | null {
   if (!r) return null;
@@ -227,6 +228,7 @@ function PeakWindowApp() {
       )}
 
       {data && <FloatingTooltip data={data} cursor={cursor} />}
+      {data && <PrintView data={data} />}
     </div>
   );
 }

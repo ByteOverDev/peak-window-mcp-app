@@ -16,6 +16,7 @@ import { ChartPanels, snowRelevant, type VentuskyPayload } from "./ventusky.tsx"
 import { StatsRow } from "./components/StatsRow.tsx";
 import { WeekOverview } from "./components/WeekOverview.tsx";
 import { FloatingTooltip } from "./components/FloatingTooltip.tsx";
+import { PrintView } from "./components/PrintView.tsx";
 import { scoreHour, findWindows, type HourData } from "./scoring.ts";
 
 function windChill(tC: number, vMs: number): number {
@@ -262,6 +263,7 @@ function TestApp() {
       </div>
 
       <FloatingTooltip data={data} cursor={cursor} />
+      <PrintView data={data} />
     </div>
   );
 }

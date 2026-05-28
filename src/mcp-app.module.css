@@ -9,6 +9,10 @@
 @media (max-width: 720px) {
   .embed { padding: 18px 14px 56px; }
 }
+@media print {
+  .embed { max-width: none; margin: 0; padding: 0; gap: 0; }
+  .embed > *:not(:last-child) { display: none !important; }
+}
 
 
 .forecast {
