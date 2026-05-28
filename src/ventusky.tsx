@@ -33,6 +33,9 @@ export interface VentuskyPayload {
   gridResolutionKm?: number | null;
   series: VentuskySeries;
   score?: (number | null)[];
+  profile?: number[] | null;
+  backProfile?: number[] | null;
+  peakIdx?: number | null;
 }
 
 export function snowRelevant(p: VentuskyPayload): boolean {
@@ -786,17 +789,22 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
   const peakY = 140;
   const baseY = 480;
 
+  // Real per-peak DEM silhouette when available; baked Großglockner profile otherwise.
+  const profile = payload.profile ?? GK_PROFILE;
+  const backProfile = payload.backProfile ?? GK_BACK_PROFILE;
+  const peakIdx = payload.peakIdx ?? GK_PEAK_IDX;
+
   const ridgePts = useMemo(() => {
     const pts: [number, number][] = [];
     pts.push([-30, baseY + 40]);
-    for (let i = 0; i < GK_PROFILE.length; i++) {
-      const x = (i / (GK_PROFILE.length - 1)) * W;
-      const y = baseY - GK_PROFILE[i] * (baseY - peakY);
+    for (let i = 0; i < profile.length; i++) {
+      const x = (i / (profile.length - 1)) * W;
+      const y = baseY - profile[i] * (baseY - peakY);
       pts.push([x, y]);
     }
     pts.push([W + 30, baseY + 40]);
     return pts;
-  }, []);
+  }, [profile]);
 
   const ridgePath = `M ${ridgePts[0][0]},${ridgePts[0][1]} ` +
     ridgePts.slice(1).map(([x, y]) => `L ${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
@@ -804,14 +812,14 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
   const backRidgePts = useMemo(() => {
     const pts: [number, number][] = [];
     pts.push([-30, baseY + 40]);
-    for (let i = 0; i < GK_BACK_PROFILE.length; i++) {
-      const x = (i / (GK_BACK_PROFILE.length - 1)) * W;
-      const y = baseY - GK_BACK_PROFILE[i] * (baseY - peakY - 40);
+    for (let i = 0; i < backProfile.length; i++) {
+      const x = (i / (backProfile.length - 1)) * W;
+      const y = baseY - backProfile[i] * (baseY - peakY - 40);
       pts.push([x, y]);
     }
     pts.push([W + 30, baseY + 40]);
     return pts;
-  }, []);
+  }, [backProfile]);
   const backRidgePath = `M ${backRidgePts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" L ")}`;
 
   const snowFrac = Math.max(0.04, Math.min(0.82, (summit - (currentSnow as number)) / summit));
@@ -871,7 +879,7 @@ function MountainBackdrop({ payload, cursorIdx }: { payload: VentuskyPayload; cu
       <CloudLayer tcc={tcc} windSpeed={windSpeed} />
       <PrecipLayer precip={precip} precipType={precipType} windSpeed={windSpeed} isThunder={isThunder} />
 
-      <div className={styles.mtnPeakZone} style={{ left: `${(GK_PEAK_IDX / (GK_PROFILE.length - 1)) * 100}%` }}>
+      <div className={styles.mtnPeakZone} style={{ left: `${(peakIdx / (profile.length - 1)) * 100}%` }}>
         <div className={styles.mtnPeakWind}>
           {windDeg != null && (
             <div

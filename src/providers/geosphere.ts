@@ -92,6 +92,7 @@ export const geosphereProvider: ForecastProvider = {
       gridLon: feat.geometry.coordinates[0],
       gridElevationM,
       gridResolutionKm: 2.5,
+      providerId: "geosphere",
       source: "GeoSphere Austria — NWP 1h 2.5km",
     };
   },

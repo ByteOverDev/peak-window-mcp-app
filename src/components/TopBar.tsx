@@ -1,10 +1,22 @@
-import { Clock, MountainSnow, Printer } from "lucide-react";
+import { Clock, MountainSnow, Printer, Satellite } from "lucide-react";
 import type { PeakWindowResult } from "../types.ts";
 import s from "./TopBar.module.css";
 
 interface TopBarProps {
   data?: PeakWindowResult | null;
   windowCount?: number;
+}
+
+// Short model label per provider; falls back to the server's source string.
+const PROVIDER_LABELS: Record<string, string> = {
+  geosphere: "GeoSphere AROME",
+  meteoswiss: "MeteoSwiss ICON",
+  meteofrance: "Météo-France AROME",
+  "open-meteo": "Open-Meteo",
+};
+
+function providerLabel(data: PeakWindowResult): string {
+  return PROVIDER_LABELS[data.providerId] ?? data.source.split(" — ")[0];
 }
 
 export function TopBar({ data, windowCount }: TopBarProps) {
@@ -20,6 +32,15 @@ export function TopBar({ data, windowCount }: TopBarProps) {
       </div>
       {data && (
         <div className={s.meta}>
+          <div
+            className={s.provider}
+            data-provider={data.providerId}
+            title={`${data.source} · ${data.gridResolutionKm} km grid`}
+          >
+            <Satellite size={11} />
+            {providerLabel(data)}
+            <span className={s.providerRes}>{data.gridResolutionKm} km</span>
+          </div>
           <div className={s.issued}>
             <Clock size={11} />
             Issued {new Date(data.issued_at ?? data.fetchedAt).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false })}
