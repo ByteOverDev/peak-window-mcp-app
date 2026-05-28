@@ -21,6 +21,7 @@ const SPAN_KM = 14; // E→W extent of the transect
 const BACK_OFFSET_KM = 2; // back ridge distance north
 const KM_PER_DEG_LAT = 111.32;
 const ELEVATION_URL = "https://api.open-meteo.com/v1/elevation";
+const TIMEOUT_MS = 8000;
 
 function transect(lat: number, lon: number, atLat: number): { lats: number[]; lons: number[] } {
   const kmPerDegLon = KM_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180);
@@ -39,10 +40,21 @@ async function fetchElevations(lats: number[], lons: number[]): Promise<number[]
   const url = new URL(ELEVATION_URL);
   url.searchParams.set("latitude", lats.join(","));
   url.searchParams.set("longitude", lons.join(","));
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Elevation API error ${res.status}`);
-  const json = (await res.json()) as { elevation: (number | null)[] };
-  return json.elevation.map((e) => e ?? 0);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`Elevation API error ${res.status}`);
+    const json = (await res.json()) as { elevation: (number | null)[] };
+    return json.elevation.map((e) => e ?? 0);
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error(`Elevation API timed out after ${TIMEOUT_MS}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Fetch and normalize the real elevation silhouette for a peak. */

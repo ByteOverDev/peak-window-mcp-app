@@ -51,13 +51,16 @@ export function analyzeForecast(
 ): PeakWindowResult {
   const { gridLat, gridLon, gridResolutionKm, providerId, source } = forecast;
 
-  let hours = forecast.hours;
   const gridElevationM = forecast.gridElevationM;
   let lapseDeltaC: number | null = null;
   if (summitElevationM != null && gridElevationM != null) {
     lapseDeltaC = (gridElevationM - summitElevationM) * LAPSE_RATE_C_PER_M;
-    hours = applyLapseCorrection(forecast.hours, lapseDeltaC);
   }
+  // Work on shallow clones so derived-field assignments never mutate the
+  // provider's hour objects. applyLapseCorrection already returns new objects.
+  const hours = lapseDeltaC != null
+    ? applyLapseCorrection(forecast.hours, lapseDeltaC)
+    : forecast.hours.map((h) => ({ ...h }));
 
   for (const h of hours) {
     if (h.t2m != null && h.wsp != null) {

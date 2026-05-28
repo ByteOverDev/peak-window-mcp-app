@@ -282,6 +282,10 @@ function Showcase({ data }: { data: PeakWindowResult }) {
 // horizon. Ordered so the default (first) shows the sharp GeoSphere model.
 const SHOWCASE_PEAKS = PEAKS;
 
+// generateMockData() always returns this peak's sample; keep the UI message in sync.
+const FALLBACK_SAMPLE_NAME = "Großglockner";
+const LIVE_FETCH_TIMEOUT_MS = 9000;
+
 function TestApp() {
   const [peakName, setPeakName] = useState(SHOWCASE_PEAKS[0].name);
   const [data, setData] = useState<PeakWindowResult | null>(null);
@@ -290,14 +294,26 @@ function TestApp() {
   useEffect(() => {
     const peak = SHOWCASE_PEAKS.find((p) => p.name === peakName) ?? SHOWCASE_PEAKS[0];
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     setStatus("loading");
     setData(null);
-    Promise.all([
-      fetchForecast(peak.lat, peak.lon),
-      fetchPeakProfile(peak.lat, peak.lon).catch(() => null),
+
+    // Forecast providers have no timeout of their own; guard against a hang so
+    // the showcase never gets stuck on "loading".
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`live fetch timed out after ${LIVE_FETCH_TIMEOUT_MS}ms`)), LIVE_FETCH_TIMEOUT_MS);
+    });
+
+    Promise.race([
+      Promise.all([
+        fetchForecast(peak.lat, peak.lon),
+        fetchPeakProfile(peak.lat, peak.lon).catch(() => null),
+      ]),
+      timeout,
     ])
       .then(([forecast, profile]) => {
         if (cancelled) return;
+        clearTimeout(timer);
         setData(analyzeForecast(forecast, {
           lat: peak.lat, lon: peak.lon, peakName: peak.name, summitElevationM: peak.elevationM, profile,
         }));
@@ -305,11 +321,12 @@ function TestApp() {
       })
       .catch((err) => {
         if (cancelled) return;
+        clearTimeout(timer);
         console.error("Live forecast fetch failed, falling back to sample data:", err);
         setData(generateMockData());
         setStatus("error");
       });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [peakName]);
 
   return (
@@ -324,7 +341,7 @@ function TestApp() {
           </select>
         </label>
         {status === "loading" && <span className={styles.demoNote}>Loading live forecast…</span>}
-        {status === "error" && <span className={styles.demoNote}>Live fetch failed — showing sample data.</span>}
+        {status === "error" && <span className={styles.demoNote}>Live fetch failed — showing {FALLBACK_SAMPLE_NAME} sample data.</span>}
         {status === "ready" && data && (
           <span className={styles.demoNote}>Live · {data.source}</span>
         )}
