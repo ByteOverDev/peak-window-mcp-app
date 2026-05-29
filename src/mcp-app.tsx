@@ -1,6 +1,6 @@
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { createContext, StrictMode, use, useCallback, useEffect, useMemo, useState } from "react";
+import { createContext, StrictMode, useContext, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Clock, Cloud, MapPin, Moon, Thermometer } from "lucide-react";
 import styles from "./mcp-app.module.css";
@@ -60,7 +60,7 @@ function McpProvider({ children }: { children: React.ReactNode }) {
 }
 
 function PeakWindowApp() {
-  const { data, busy } = use(McpContext)!;
+  const { data, busy } = useContext(McpContext)!;
 
   const [showNight, setShowNight] = useState(true);
   const [showCloud, setShowCloud] = useState(true);
