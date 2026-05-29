@@ -1,6 +1,7 @@
 {
   "name": "peak-window",
-  "version": "1.0.1",
+  "version": "1.0.2",
+  "mcpName": "io.github.ByteOverDev/peak-window",
   "description": "MCP server that ranks climbing/ascent weather windows using multiple high-resolution models (GeoSphere AROME 2.5km, MeteoSwiss ICON 2km, Météo-France AROME 2.5km, Open-Meteo global)",
   "main": "dist/index.js",
   "bin": {
