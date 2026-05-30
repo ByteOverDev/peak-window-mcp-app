@@ -126,6 +126,8 @@ function generateMockData(): PeakWindowResult {
     fetchedAt: new Date().toISOString(),
     providerId: "geosphere",
     source: "GeoSphere Austria — NWP 1h 2.5km",
+    interpMethod: "lapse",
+    bands: [],
     lapseNote: `lapse-corrected ${lapseDeltaC >= 0 ? "+" : ""}${lapseDeltaC.toFixed(1)}°C to ${summitElevationM}m`,
     hours: scored,
     windows,

@@ -34,11 +34,15 @@ export function createServer(): McpServer {
         lon: z.number().min(-180).max(180).optional().describe("Longitude in WGS84 (overrides the named peak if both given)"),
         peakName: z.string().optional().describe("Optional display name (defaults to the resolved peak's name)"),
         summitElevationM: z.number().optional()
-          .describe("Summit elevation in meters. If set, temperatures are lapse-corrected from the forecast grid-cell elevation to the summit (-6.5°C/km)."),
+          .describe("Summit elevation in meters. If set, summit temperature is interpolated from the model's pressure-level profile to that elevation (captures inversions), falling back to a -6.5°C/km lapse rate when the provider has no profile."),
+        baseElevationM: z.number().optional()
+          .describe("Optional trailhead/base elevation in meters for the lower forecast band (defaults to summit-1200m, clamped to the grid elevation)."),
+        colElevationM: z.number().optional()
+          .describe("Optional col/saddle elevation in meters to add as an extra forecast band."),
       },
       _meta: { ui: { resourceUri } },
     },
-    async ({ peak, lat, lon, peakName, summitElevationM }): Promise<CallToolResult> => {
+    async ({ peak, lat, lon, peakName, summitElevationM, baseElevationM, colElevationM }): Promise<CallToolResult> => {
       try {
         // Resolve a named peak to authoritative coords/elevation; explicit lat/lon always win.
         if (peak) {
@@ -65,13 +69,26 @@ export function createServer(): McpServer {
           fetchForecast(lat, lon),
           fetchPeakProfile(lat, lon).catch(() => null),
         ]);
-        const payload = analyzeForecast(forecast, { lat, lon, peakName, summitElevationM, profile });
+        const payload = analyzeForecast(forecast, {
+          lat, lon, peakName, summitElevationM, baseElevationM, colElevationM, profile,
+        });
         const top = payload.windows;
 
-        const summary = top.length
-          ? `Top window for ${peakName ?? `(${lat.toFixed(3)},${lon.toFixed(3)})`}: ` +
+        const where = peakName ?? `(${lat.toFixed(3)},${lon.toFixed(3)})`;
+        const windowLine = top.length
+          ? `Top window for ${where}: ` +
             top.map(w => `${w.start.slice(5, 16)} → ${w.end.slice(11, 16)} (${w.rating}, ${w.score}/100)`).join(" | ")
-          : `No suitable climbing window found in the forecast horizon for ${peakName ?? `(${lat.toFixed(3)},${lon.toFixed(3)})`}.`;
+          : `No suitable climbing window found in the forecast horizon for ${where}.`;
+
+        // One-line per-band temperature range (min…max over the horizon).
+        const bandLine = payload.bands.length
+          ? "Elevation bands: " + payload.bands.map((b) => {
+              const ts = b.t2m.filter((t): t is number => t != null);
+              const range = ts.length ? `${Math.min(...ts).toFixed(0)}…${Math.max(...ts).toFixed(0)}°C` : "n/a";
+              return `${b.label} ${b.elevationM}m ${range}`;
+            }).join(" · ")
+          : "";
+        const summary = bandLine ? `${windowLine}\n${bandLine}` : windowLine;
 
         return {
           content: [

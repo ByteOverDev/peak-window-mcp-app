@@ -5,8 +5,15 @@ const GEOSPHERE_BASE = "https://dataset.api.hub.geosphere.at/v1";
 const FORECAST_RESOURCE = "nwp-v1-1h-2500m";
 const PARAMS = ["t2m", "tcc", "rr_acc", "snow_acc", "snowlmt", "u10m", "v10m", "ugust", "vgust", "sp"];
 
-// AROME NWP model bounding box
+// True AROME model domain — documents the data extent (the API serves this whole box).
 const BBOX = { south: 42.98, west: 5.50, north: 51.82, east: 22.10 };
+
+// GeoSphere's AROME is Austria-centric: its skill is best over Austria and the Eastern
+// Alps and degrades toward the western edge of its domain. So we only make it the FIRST
+// choice east of ~9.5°E (roughly the Austria–Switzerland border). West of that — the
+// Swiss/French/Italian Alps (e.g. Matterhorn at 7.66°E) — the region-tuned MeteoSwiss
+// ICON-CH2 (2 km) and Météo-France AROME, next in the router order, take precedence.
+const PREFERRED_WEST = 9.5;
 
 interface GeoSphereForecast {
   timestamps: string[];
@@ -49,7 +56,9 @@ export const geosphereProvider: ForecastProvider = {
   name: "geosphere",
 
   covers(lat, lon) {
-    return lat >= BBOX.south && lat <= BBOX.north && lon >= BBOX.west && lon <= BBOX.east;
+    // Prefer GeoSphere only over its Austria-centric core; west of PREFERRED_WEST the
+    // router falls through to MeteoSwiss/Météo-France (still inside the true BBOX domain).
+    return lat >= BBOX.south && lat <= BBOX.north && lon >= PREFERRED_WEST && lon <= BBOX.east;
   },
 
   async fetchForecast(lat, lon): Promise<ForecastProviderResult> {
