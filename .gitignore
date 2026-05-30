@@ -4,3 +4,10 @@ dist/
 !screenshot.png
 snap.txt
 .claude/settings.local.json
+
+# macOS
+.DS_Store
+
+# MCP registry auth tokens (secrets — never commit)
+.mcpregistry_github_token
+.mcpregistry_registry_token

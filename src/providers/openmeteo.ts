@@ -1,4 +1,4 @@
-import type { HourData } from "../scoring.ts";
+import type { HourData, VerticalLevel } from "../scoring.ts";
 import type { ForecastProvider, ForecastProviderResult } from "./types.ts";
 
 const OPENMETEO_BASE = "https://api.open-meteo.com/v1/forecast";
@@ -13,6 +13,21 @@ const HOURLY_PARAMS = [
   "wind_direction_10m",
 ].join(",");
 
+// Pressure levels spanning the alpine band (~110 m at 1000hPa to ~5600 m at 500hPa).
+// Used to interpolate temperature/wind to a summit's real elevation (captures inversions
+// that a fixed lapse rate cannot). See src/profile-interp.ts.
+const PRESSURE_LEVELS = [1000, 925, 850, 700, 600, 500];
+const PROFILE_VARS = [
+  "temperature",
+  "wind_speed",
+  "wind_direction",
+  "geopotential_height",
+  "relative_humidity",
+];
+const PRESSURE_PARAMS = PRESSURE_LEVELS.flatMap((p) =>
+  PROFILE_VARS.map((v) => `${v}_${p}hPa`)
+).join(",");
+
 interface OpenMeteoHourly {
   time: string[];
   temperature_2m: (number | null)[];
@@ -23,6 +38,8 @@ interface OpenMeteoHourly {
   wind_speed_10m: (number | null)[];
   wind_gusts_10m: (number | null)[];
   wind_direction_10m: (number | null)[];
+  // Dynamic pressure-level fields, e.g. temperature_850hPa, geopotential_height_850hPa.
+  [key: string]: (number | null)[] | string[] | undefined;
 }
 
 interface OpenMeteoResponse {
@@ -34,6 +51,34 @@ interface OpenMeteoResponse {
 
 function kmhToMs(v: number | null): number | null {
   return v != null ? v / 3.6 : null;
+}
+
+// Assemble the vertical profile for hour `i` from the dynamic pressure-level fields.
+// Drops levels with no geopotential height, sorts ascending by height, and returns null
+// when fewer than 2 usable levels exist (interpolation needs a bracket).
+export function buildProfile(
+  h: OpenMeteoHourly, i: number, levels: number[],
+): VerticalLevel[] | null {
+  const num = (key: string): number | null => {
+    const arr = h[key] as (number | null)[] | undefined;
+    return arr?.[i] ?? null;
+  };
+  const out: VerticalLevel[] = [];
+  for (const p of levels) {
+    const geopotentialHeightM = num(`geopotential_height_${p}hPa`);
+    if (geopotentialHeightM == null) continue;
+    out.push({
+      pressureHPa: p,
+      geopotentialHeightM,
+      tempC: num(`temperature_${p}hPa`),
+      windMs: kmhToMs(num(`wind_speed_${p}hPa`)),
+      windDir: num(`wind_direction_${p}hPa`),
+      rh: num(`relative_humidity_${p}hPa`),
+    });
+  }
+  if (out.length < 2) return null;
+  out.sort((a, b) => a.geopotentialHeightM - b.geopotentialHeightM);
+  return out;
 }
 
 // Fetch freezing_level_height from the default (best-available) model
@@ -73,6 +118,8 @@ interface OpenMeteoProviderConfig {
   source: string;
   forecastDays: number;
   covers: (lat: number, lon: number) => boolean;
+  // Request pressure-level data so summit temps can be profile-interpolated.
+  pressureLevels?: boolean;
 }
 
 function createOpenMeteoProvider(config: OpenMeteoProviderConfig): ForecastProvider {
@@ -84,7 +131,10 @@ function createOpenMeteoProvider(config: OpenMeteoProviderConfig): ForecastProvi
       const url = new URL(OPENMETEO_BASE);
       url.searchParams.set("latitude", lat.toString());
       url.searchParams.set("longitude", lon.toString());
-      url.searchParams.set("hourly", HOURLY_PARAMS);
+      url.searchParams.set(
+        "hourly",
+        config.pressureLevels ? `${HOURLY_PARAMS},${PRESSURE_PARAMS}` : HOURLY_PARAMS,
+      );
       url.searchParams.set("timezone", "UTC");
       url.searchParams.set("forecast_days", config.forecastDays.toString());
       if (config.model) url.searchParams.set("models", config.model);
@@ -113,6 +163,7 @@ function createOpenMeteoProvider(config: OpenMeteoProviderConfig): ForecastProvi
         feelsLike: null,
         freezingLevel: null,
         precipType: "none" as const,
+        profile: config.pressureLevels ? buildProfile(h, i, PRESSURE_LEVELS) : null,
       }));
 
       return {
@@ -134,6 +185,7 @@ export const meteoFranceProvider = createOpenMeteoProvider({
   gridResolutionKm: 2.5,
   source: "Météo-France AROME via Open-Meteo — 2.5km",
   forecastDays: 2,
+  pressureLevels: true,
   covers: (lat, lon) =>
     lat >= 38.0 && lat <= 55.0 && lon >= -9.0 && lon <= 14.0,
 });
@@ -144,6 +196,9 @@ export const meteoSwissProvider = createOpenMeteoProvider({
   gridResolutionKm: 2,
   source: "MeteoSwiss ICON-CH2 via Open-Meteo — 2km",
   forecastDays: 5,
+  // ICON-CH2 does not expose pressure-level fields via Open-Meteo (they return all-null),
+  // so requesting them is pure payload waste. Summit temps fall back to fixed lapse here.
+  pressureLevels: false,
   covers: (lat, lon) =>
     lat >= 43.0 && lat <= 49.9 && lon >= 0.5 && lon <= 16.5,
 });
@@ -153,5 +208,6 @@ export const openMeteoProvider = createOpenMeteoProvider({
   gridResolutionKm: 11,
   source: "Open-Meteo — Best Available ~11km",
   forecastDays: 3,
+  pressureLevels: true,
   covers: () => true,
 });

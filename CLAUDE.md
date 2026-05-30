@@ -6,10 +6,17 @@ PeakWindow uses a multi-provider abstraction (`src/providers/`) to select the be
 
 | Priority | Provider | Resolution | Coverage | Source |
 |---|---|---|---|---|
-| 1 | GeoSphere Austria | 2.5 km | Central Europe (5.5–22.1°E, 43–51.8°N) | Direct API (`dataset.api.hub.geosphere.at`) |
+| 1 | GeoSphere Austria | 2.5 km | Austria & Eastern Alps (**9.5–22.1°E**, 43–51.8°N) | Direct API (`dataset.api.hub.geosphere.at`) |
 | 2 | MeteoSwiss ICON-CH2 | 2 km | Alpine region (0.5–16.5°E, 43–49.9°N) | Open-Meteo (`models=meteoswiss_icon_ch2`) |
 | 3 | Météo-France AROME | 2.5 km | France & surrounds (-9–14°E, 38–55°N) | Open-Meteo (`models=meteofrance_arome_france`) |
 | 4 | Open-Meteo default | ~11 km | Global | Open-Meteo (best available model blend) |
+
+**GeoSphere routing note:** the AROME model's *true* domain reaches west to 5.5°E (`BBOX` in
+`geosphere.ts`), but its skill is Austria-centric and degrades toward the western edge. So `covers()`
+only makes it the **first choice east of 9.5°E** (`PREFERRED_WEST`, ~the Austria–Switzerland border).
+West of that — the Swiss/French/Italian Alps, e.g. Matterhorn (7.66°E), Mont Blanc (6.87°E) — the
+router falls through to the region-tuned MeteoSwiss ICON-CH2 / Météo-France AROME, which match
+Mountain-Forecast notably better on summit temperature and snow line.
 
 Key files:
 - `src/providers/types.ts` — `ForecastProvider` interface, `ForecastProviderResult`
@@ -17,9 +24,50 @@ Key files:
 - `src/providers/openmeteo.ts` — factory for Open-Meteo-based providers (MeteoSwiss, Météo-France, default)
 - `src/providers/index.ts` — router with ordered fallback
 
-### Lapse correction
+### Elevation correction (pressure-level profile + lapse fallback)
 
-GeoSphere reports t2m at the NWP model's smoothed terrain, not at DEM elevation. The model terrain is derived from `sp` (surface pressure) via the hypsometric formula. Open-Meteo providers use the `elevation` field from the response (already downscaled to DEM). When a provider doesn't supply `freezing_level_height`, it's backfilled from the Open-Meteo default model.
+Summit temperature is corrected from the forecast grid-cell elevation to the real summit
+elevation in `analyzeForecast` (`src/analyze.ts`), via two strategies decided **per hour** in
+`interpolateAtElevation` (`src/profile-interp.ts`):
+
+1. **Profile interpolation** (preferred) — when the provider supplies a vertical pressure-level
+   profile (`HourData.profile: VerticalLevel[]`), temperature and wind are linearly interpolated
+   in geopotential height between the two bracketing levels. This samples the *real* atmosphere
+   at summit height and **captures inversions** (valley cold pools, foehn) that a constant lapse
+   rate cannot. `result.interpMethod === "profile"`.
+2. **Fixed lapse** (fallback) — when no profile is available, shift t2m by
+   `(gridElevationM − targetM) × 0.0065` (`LAPSE_RATE_C_PER_M`). Byte-identical to the prior
+   behavior, so providers without profiles (GeoSphere, MeteoSwiss) are unchanged.
+   `result.interpMethod === "lapse"`.
+
+Targets above/below the profile's level range extrapolate from the nearest level with fixed lapse
+(`method: "lapse-extrapolate"`).
+
+**Pressure-level data source.** Open-Meteo providers opt in via `pressureLevels: true` and request
+`{temperature,wind_speed,wind_direction,geopotential_height,relative_humidity}_{1000,925,850,700,600,500}hPa`,
+assembled into a per-hour profile by `buildProfile`. Availability is **model-specific**:
+Météo-France AROME and the default global model return populated levels; **MeteoSwiss ICON-CH2
+returns all-null pressure levels** (not exposed via Open-Meteo), so it is left `pressureLevels: false`
+and falls back to lapse. GeoSphere (direct API) has no pressure levels.
+
+**Profile-aware wind.** When a profile exists, summit wind speed/direction are taken from the
+free-air profile at summit height (`USE_PROFILE_WIND` in `src/analyze.ts`). **Gusts are always kept
+from the provider** — pressure levels have no gust field, and gusts drive the scoring veto.
+
+**Multi-elevation bands.** `analyzeForecast` emits `bands: ElevationBand[]` (base / mid / summit /
+optional col) via `computeBand`, each interpolated to its elevation. Windowing/scoring stays
+**summit-driven** (one window set); bands are additive temperature/precip context (the summit band
+equals the scored `hours`). Base defaults to `summit−1200` (clamped to grid elevation), mid to
+`summit−600`; `col` only when `colElevationM` is passed. Tool inputs: `baseElevationM`, `colElevationM`.
+
+GeoSphere reports t2m at the NWP model's smoothed terrain; its model terrain is derived from `sp`
+(surface pressure) via the hypsometric formula. Open-Meteo providers use the response `elevation`
+field (already downscaled to DEM). When a provider doesn't supply `freezing_level_height`, it's
+backfilled from the Open-Meteo default model.
+
+A future option (deferred, behind a `geosphereProfileCompanion` flag) would fetch a pressure profile
+from the global Open-Meteo model alongside GeoSphere/MeteoSwiss to give them inversion-aware temps,
+at the cost of a second network call on the hot path.
 
 ## Scoring System (`src/scoring.ts`)
 

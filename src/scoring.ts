@@ -3,6 +3,16 @@
  * Thresholds tuned for alpine rock/snow ascents.
  */
 
+/** A single pressure-level slice of the model's vertical profile for one hour. */
+export interface VerticalLevel {
+  pressureHPa: number;          // 1000, 925, 850, 700, 600, 500
+  geopotentialHeightM: number;  // height of this pressure surface, m
+  tempC: number | null;
+  windMs: number | null;
+  windDir: number | null;       // degrees, meteorological FROM
+  rh: number | null;            // %
+}
+
 export interface HourData {
   time: string;
   t2m: number | null;       // 2m air temperature, °C
@@ -16,6 +26,9 @@ export interface HourData {
   feelsLike: number | null; // wind chill temperature, °C
   freezingLevel: number | null; // 0°C isotherm elevation, meters
   precipType: "none" | "rain" | "snow" | "mixed"; // derived from snowlmt vs summit
+  // Vertical pressure-level profile (Open-Meteo providers only); null/absent when
+  // unavailable — scoring ignores it, analyze uses it for elevation interpolation.
+  profile?: VerticalLevel[] | null;
 }
 
 export type Rating = "ideal" | "good" | "fair" | "marginal" | "avoid";
